@@ -76,8 +76,8 @@
     };
 
     ks3FileUploader.prototype.onStartUploadFile = function(uploader, obj) {
-        this.defaultKS3Options.onBeforeUploadCallBack&&
-        this.defaultKS3Options.onBeforeUploadCallBack.apply(this, [uploader, obj]);
+        this.defaultKS3Options.onStartUploadFileCallBack&&
+        this.defaultKS3Options.onStartUploadFileCallBack.apply(this, [uploader, obj]);
     };
 
     ks3FileUploader.prototype.onUploadProgress = function(uploader, obj) {
