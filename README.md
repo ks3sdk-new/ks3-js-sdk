@@ -18,7 +18,7 @@
 2、SDK构成介绍及引入
 
 - plupload.full.min.js ，建议 2.1.2 及以上版本，下载地址：[http://www.plupload.com/download/](http://www.plupload.com/download/)
-- ks3jssdk.js，SDK主体文件，上传功能，源码位于src目录内, 压缩版本位于dist目录内
+- ks3jssdk.js，SDK主体文件，封装了上传功能，源码位于src目录内, 压缩版本位于dist目录内
 
 将js文件引入到项目文件中，必须先引入`plupload.full.min.js`
 
@@ -52,9 +52,9 @@ document.getElementById('start-upload').onclick = function (){
 
 	- `KSSAccessKeyId`: AccessKey
 
-	- `policy`: 请求中用于描述获准行为的安全策略。没有安全策略的请求被认为是匿名请求，只能访问公共可写空间。详见：
+	- `policy`: 请求中用于描述获准行为的安全策略。没有安全策略的请求被认为是匿名请求，只能访问公共可写空间。详见：[Policy、Signature构建方法](http://ks3.ksyun.com/doc/api/object/post_policy.html)
 	
-	- `signature`: 根据Access Key Secret和policy计算的签名信息，KS3验证该签名信息从而验证该Post请求的合法性。详见：
+	- `signature`: 根据Access Key Secret和policy计算的签名信息，KS3验证该签名信息从而验证该Post请求的合法性。详见：[Policy、Signature构建方法](http://ks3.ksyun.com/doc/api/object/post_policy.html)
 	
     - `bucket_name`: 上传的空间名
     
@@ -92,7 +92,7 @@ document.getElementById('start-upload').onclick = function (){
 	
 #### 属性 ####
 
-uploader：返回一个 plupload 插件的一个 Uploader 对象。 欲查看更多关于plupload的信息，参见：[http://www.plupload.com/docs/](http://www.plupload.com/docs/)
+uploader：返回一个 plupload 插件的 Uploader 对象。 欲查看更多关于plupload的信息，参见：[http://www.plupload.com/docs/](http://www.plupload.com/docs/)
 	
 
 ### 许可协议 ###
