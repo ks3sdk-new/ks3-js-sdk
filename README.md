@@ -35,15 +35,15 @@ var ks3Options = {
     bucket_name: "Your bucket name",
     key: '${filename}',
     uploadDomain: "http://kssws.ks-cdn.com/destination",
-    autoStart: false,
+    autoStart: false
 };
 var pluploadOptions = {
     drop_element: document.body
-}
+};
 var tempUpload = new ks3FileUploader(ks3Options, pluploadOptions);
 document.getElementById('start-upload').onclick = function (){
         tempUpload.uploader.start()
-}```
+};```
 ### SDK 详细介绍 ###
 #### 构造函数 ####
 初始化一个 ks3FileUploader 实例：`new ks3FileUploader(ks3PostOptions, pluploadOptions);`
