@@ -3,8 +3,8 @@
     var filelistNode = document.getElementById('filelist')
     var ks3Options = {
         KSSAccessKeyId: "8oN7siZgTOSFHft0cXTg",
-        policy: "test",
-        signature: "test",
+        policy: "",
+        signature: "",
         bucket_name: "yyy",
         key: '${filename}',
         uploadDomain: "http://kssws.ks-cdn.com/yyy",
