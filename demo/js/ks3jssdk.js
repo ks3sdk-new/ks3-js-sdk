@@ -21,6 +21,24 @@
         if (ks3PostOptions)
             plupload.extend(this.defaultKS3Options, ks3PostOptions);
 
+        var multipartParams = {};
+
+        if (this.defaultKS3Options.signature&&this.defaultKS3Options.policy){
+            multipartParams = {
+                "key": this.defaultKS3Options.key,
+                "acl": this.defaultKS3Options.acl,
+                "signature" : this.defaultKS3Options.signature,
+                "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId,
+                "policy": this.defaultKS3Options.policy
+            }
+        } else {
+            multipartParams = {
+                "key": this.defaultKS3Options.key,
+                "acl": this.defaultKS3Options.acl,
+                "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId
+            }            
+        }
+
         this.defaultPluploadOptions = {
             runtimes : 'html5,flash,silverlight,html4', //上传模式，依次退化;
             url: this.defaultKS3Options.uploadDomain || "http://kssws.ks-cdn.com/destination-bucket", 
@@ -29,13 +47,7 @@
             silverlight_xap_url : 'js/Moxie.xap', //Silverlight组件的相对路径;
             drop_element: undefined, //触发拖动上传的元素或者其ID
             multipart: true,
-            multipart_params: {
-                "key": this.defaultKS3Options.key,
-                "acl": this.defaultKS3Options.acl,
-                "signature" : this.defaultKS3Options.signature,
-                "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId,
-                "policy": this.defaultKS3Options.policy
-            }
+            multipart_params: multipartParams
         };
 
         if (pluploadOptions) 
