@@ -1,7 +1,7 @@
 # KS3 SDK For javascript 使用指南 #
 
 ## SDK下载地址 ##
-下载地址 [https://github.com/ks3sdk/ks3-js-sdk.git](https://github.com/ks3sdk/ks3-nodejs-sdk.git "https://github.com/ks3sdk/ks3-js-sdk.git")
+下载地址 [https://github.com/ks3sdk/ks3-js-sdk.git](https://github.com/ks3sdk/ks3-js-sdk "https://github.com/ks3sdk/ks3-js-sdk.git")
 
 ## KS3 javascript SDK 说明##
 
@@ -23,9 +23,11 @@
 将js文件引入到项目文件中，必须先引入`plupload.full.min.js`
 
 
-```	<script type="text/javascript" src="js/plupload.full.min.js"></script>
-	<script type="text/javascript" src="js/ks3jssdk.min.js"></script>```
-3、运行
+```
+	<script type="text/javascript" src="js/plupload.full.min.js"></script>
+	<script type="text/javascript" src="js/ks3jssdk.min.js"></script>
+```
+3、运行
 
 ```
 var ks3Options = {
@@ -43,12 +45,13 @@ var pluploadOptions = {
 var tempUpload = new ks3FileUploader(ks3Options, pluploadOptions);
 document.getElementById('start-upload').onclick = function (){
         tempUpload.uploader.start()
-};```
-### SDK 详细介绍 ###
-#### 构造函数 ####
-初始化一个 ks3FileUploader 实例：`new ks3FileUploader(ks3PostOptions, pluploadOptions);`
-##### 参数 #####
-- `ks3PostOptions`, 金山云存储上传需要的配置参数：
+};
+```
+### SDK 详细介绍 ###
+#### 构造函数 ####
+初始化一个 ks3FileUploader 实例：`new ks3FileUploader(ks3PostOptions, pluploadOptions);`
+##### 参数 #####
+- `ks3PostOptions`, 金山云存储上传需要的配置参数：
 
 	- `KSSAccessKeyId`: AccessKey
 
@@ -80,7 +83,8 @@ document.getElementById('start-upload').onclick = function (){
     
     - `onFileUploadedCallBack`: function(){}, //文件上传完成时调用的回调函数
     
-    - `onUploadCompleteCallBack`: function(){} //所有上传完成时调用的回调函数
+    - `onUploadCompleteCallBack`: function(){} //所有上传完成时调用的回调函数
+
 - `pluploadOptions`, plupload上传插件需要的配置参数：
 	- `runtimes`: 默认值为："html5,flash,silverlight,html4"，上传模式，上传器将会依次采用能够工作的模式运行
 	- `browse_button`: 默认为'browse', 触发对话框的DOM元素自身或者其ID
