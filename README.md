@@ -97,7 +97,72 @@ document.getElementById('start-upload').onclick = function (){
 #### 属性 ####
 
 uploader：返回一个 plupload 插件的 Uploader 对象。 欲查看更多关于plupload的信息，参见：[http://www.plupload.com/docs/](http://www.plupload.com/docs/)
-	
+
+#### FAQ ####
+
+1、 请给我一份适用于KS3 Javascript SDK policy文件示例：
+
+答：
+
+	{
+	    "expiration": "2015-12-02T10:57:30.000Z",
+	    "conditions": [{
+	            "acl": "public-read"
+	        }, {
+	            "bucket": "test"
+	        }, {
+	            "key": "cloud/img/201512/ab1c145071ef03e90383ea5db4039e5d.png"
+	        },
+	        ["starts-with", "$name", ""],
+	    ]
+	}
+
+2、 如何在初始化 ks3FileUploader 实例后更改acl, key, signature，policy等选项？
+
+答：
+
+	//tempUpload 为 ks3FileUploader 实例
+	tempUpload.uploader.setOption("multipart_params", {
+	                "key": your.key,
+	                "acl": your.acl,
+	                "signature" : your.signature,
+	                "KSSAccessKeyId": your.KSSAccessKeyId,
+	                "policy": your.policy
+	            }}
+
+3、 上传时返回403，该怎么办？
+
+答：请做如下调试：
+
+(1) 检查 KSSAccessKeyId 是否填写正确；
+
+(2) 检查 policy 是否正确；
+
+比如：在policy中定义的 acl 是 "public-read", 那么在表单项中的acl也必须是 "public-read". 
+
+以chrome浏览器控制台为例，参见下图：
+
+![](http://wendangimg.kssws.ks-cdn.com/javascriptsdk.png)
+
+4、 我想在上传之前计算图片MD5, 该怎么做？
+
+答： 下载第三方适用于javascript MD5库，比如：[https://github.com/brix/crypto-js](https://github.com/brix/crypto-js)
+
+在文件上传之前，计算MD5, 比如：在文件添加之后：
+
+        onFilesAddedCallBack: function(uploader, obj){
+            var reader = new FileReader();
+            reader.readAsBinaryString(obj[0].getSource().getSource())
+
+            reader.onload = function(){
+                console.log(CryptoJS.MD5(reader.result).toString())
+            }
+        }
+
+5、为什么 onUploadProgressCallBack 中没有返回进度？
+
+答： 在不支持HTML5的浏览器中，没有进度返回。 只能在 onErrorCallBack 回调中得到上传完成信号。
+
 
 ### 许可协议 ###
 
