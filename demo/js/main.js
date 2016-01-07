@@ -35,6 +35,9 @@
                 itemNode.id = objArray[i].id;
                 filelistNode.appendChild(itemNode);
             }
+        },
+        onErrorCallBack: function(uploader, errObject){
+            alert(errObject.code + " : Error happened in uploading " + errObject.file.name + " ( " + errObject.message + " )");
         }
     };
 
