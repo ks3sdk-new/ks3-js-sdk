@@ -4,14 +4,15 @@
      * @type {HTMLElement}
      */
     var filelistNode = document.getElementById('filelist')
+    var bucketName = "bucket4jssdk";
     var ks3Options = {
         KSSAccessKeyId: "S1guCl0KF/pEoT6TKTR1",
         policy: "",
         signature: "",
-        bucket_name: "bucket4jssdk",
+        bucket_name: bucketName,
         key: '${filename}',
         acl: "public-read",
-        uploadDomain: "http://kssws.ks-cdn.com/bucket4jssdk",
+        uploadDomain: "http://kssws.ks-cdn.com/" + bucketName,
         autoStart: false,
         onUploadProgressCallBack: function(uploader, obj){
             var itemNode = document.getElementById(obj.id);
@@ -38,7 +39,8 @@
     };
 
     var pluploadOptions = {
-        drop_element: document.body
+        browse_button: 'browse', //触发对话框的DOM元素自身或者其ID
+        drop_element: document.body //指定了使用拖拽方式来选择上传文件时的拖拽区域，即可以把文件拖拽到这个区域的方式来选择文件。该参数的值可以为一个DOM元素的id,也可是DOM元素本身，还可以是一个包括多个DOM元素的数组。如果不设置该参数则拖拽上传功能不可用。目前只有html5上传方式才支持拖拽上传。
     }
 
     var tempUpload = new ks3FileUploader(ks3Options, pluploadOptions);

@@ -18,8 +18,10 @@
             onFileUploadedCallBack: function(){}, //文件上传完成时调用的回调函数
             onUploadCompleteCallBack: function(){} //所有上传完成时调用的回调函数
         };
-        if (ks3PostOptions)
+        if (ks3PostOptions){
+            //用ks3PostOptions覆盖 defaultKS3Options
             plupload.extend(this.defaultKS3Options, ks3PostOptions);
+        }
 
         var multipartParams = {};
 
@@ -50,8 +52,9 @@
             multipart_params: multipartParams
         };
 
-        if (pluploadOptions) 
+        if (pluploadOptions){
             plupload.extend(this.defaultPluploadOptions, pluploadOptions);
+        }
 
         this.uploader = new plupload.Uploader(this.defaultPluploadOptions);
         this.uploader.bind("Init", this.onInit, this);
