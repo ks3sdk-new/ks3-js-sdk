@@ -109,3 +109,60 @@
 
     return win.ks3FileUploader = ks3FileUploader;
 })(window);
+
+
+/**
+ * 给url添加请求参数
+ * @param url
+ * @param obj
+ * @returns {string}  带请求参数的url
+ */
+function addURLParam(url, obj) {
+    url += url.indexOf("?") == -1  ? "?" : "";
+
+    var ret = [];
+    for(var key in obj){
+        key = encodeURIComponent(key);
+        var value = obj[key];
+        if(value && Object.prototype.toString.call(value) == '[object String]'){
+            ret.push(key + '=' + encodeURIComponent(value));
+        }
+    }
+    return url + ret.join('&');
+}
+
+/**
+ * Changes XML to JSON  （xml 不带属性）
+ * @param xml
+ * @returns {{}}  js对象
+ */
+function xmlToJson(xml) {
+    // Create the return object
+    var obj = {};
+    if (xml.nodeType == 3) { // text
+        obj = xml.nodeValue;
+    }
+
+    // do children
+    if (xml.hasChildNodes()) {
+        for(var i = 0; i < xml.childNodes.length; i++) {
+            var item = xml.childNodes.item(i);
+            var nodeName = item.nodeName;
+            if (typeof(obj[nodeName]) == "undefined") {
+                if( nodeName === '#text'){
+                    obj = item.nodeValue;
+                }else{
+                    obj[nodeName] = xmlToJson(item);
+                }
+            } else {//同级同标签转化为数组
+                if (typeof(obj[nodeName].length) == "undefined") {
+                    var old = obj[nodeName];
+                    obj[nodeName] = [];
+                    obj[nodeName].push(old);
+                }
+                obj[nodeName].push(xmlToJson(item));
+            }
+        }
+    }
+    return obj;
+};
