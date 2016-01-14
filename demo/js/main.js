@@ -5,6 +5,15 @@
      */
     var filelistNode = document.getElementById('filelist')
     var bucketName = "bucket4jssdk";
+    var ks3UploadUrl;
+
+    //支持https 上传
+    if (window.location.protocol === 'https:') {
+        ks3UploadUrl = 'https://kss.ksyun.com/';
+    } else {
+        ks3UploadUrl = 'http://kssws.ks-cdn.com/';
+    }
+
     var ks3Options = {
         KSSAccessKeyId: "S1guCl0KF/pEoT6TKTR1",
         policy: "",
@@ -12,7 +21,7 @@
         bucket_name: bucketName,
         key: '${filename}',
         acl: "public-read",
-        uploadDomain: "http://kssws.ks-cdn.com/" + bucketName,
+        uploadDomain: ks3UploadUrl + bucketName,
         autoStart: false,
         onUploadProgressCallBack: function(uploader, obj){
             var itemNode = document.getElementById(obj.id);
