@@ -3,15 +3,21 @@
      * 上传文件示例
      * @type {HTMLElement}
      */
+    var Constants = {
+        UPLOAD_HTTP_URL: "http://kssws.ks-cdn.com/",
+        UPLOAD_HTTPS_URL: "https://kss.ksyun.com/"
+    };
+
+
     var filelistNode = document.getElementById('filelist')
     var bucketName = "bucket4jssdk";
     var ks3UploadUrl;
 
     //支持https 上传
     if (window.location.protocol === 'https:') {
-        ks3UploadUrl = 'https://kss.ksyun.com/';
+        ks3UploadUrl = Constants.UPLOAD_HTTPS_URL;
     } else {
-        ks3UploadUrl = 'http://kssws.ks-cdn.com/';
+        ks3UploadUrl = Constants.UPLOAD_HTTP_URL;
     }
 
     var ks3Options = {
@@ -40,7 +46,7 @@
         onFilesAddedCallBack: function(uploader, objArray){ // objArray是等待上传的文件对象的数组
             for (var i = 0 ; i < objArray.length ; i++){
                 var itemNode = document.createElement("li");
-                itemNode.innerHTML = objArray[i].name + "<span style='margin:5px 20px;'></span><a></a>";;
+                itemNode.innerHTML = objArray[i].name + "<span style='margin:5px 20px;'></span><a></a>";
                 itemNode.id = objArray[i].id;
                 filelistNode.appendChild(itemNode);
             }
@@ -76,7 +82,7 @@
             'max-keys':'10', //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的结果在1000条以后，你可以设定 marker 的值来调整起始位置。
             prefix: null //限定响应结果列表使用的前缀
         };
-        var bucketName = "chenjin";
+        var bucketName = "bucket4jssdk";
         var url = 'http://' + bucketName + '.kss.ksyun.com';  //元数据获取不要走cdn
         url = addURLParam(url, listObjectParams);
 
