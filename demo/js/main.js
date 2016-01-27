@@ -4,26 +4,52 @@
      * @type {HTMLElement}
      */
     var Constants = {
+        AK: "S1guCl0KF/pEoT6TKTR1",   //replace with your AK
         UPLOAD_HTTP_URL: "http://kssws.ks-cdn.com/",
-        UPLOAD_HTTPS_URL: "https://kss.ksyun.com/"
+        UPLOAD_HTTPS_URL: "https://kss.ksyun.com/"    //杭州region
     };
 
 
     var filelistNode = document.getElementById('filelist')
     var bucketName = "bucket4jssdk";
-    var ks3UploadUrl;
 
+    //如果bucket不是公开读写的，需要先鉴权，即提供policy和signature表单域
+    bucketName = 'chenjin';
+
+    //Constants['AK'] = 'eNnw7t+Mel9IHT/z8tM7';
+    //bucketName = 'appdown';
+
+    //Constants['AK'] = 'HUd4AjUY8C4GaZQnzJol';
+    //bucketName = 'sanrui';
+
+    var policy = {
+        "expiration": "2016-02-01T12:00:00.000Z",
+        "conditions": [
+            ["eq","$bucket", bucketName],
+            ["starts-with", "$key", ""],
+            ["starts-with","$acl", "public-read"],
+            ["starts-with", "$name", ""]   //表单中传了name字段，也需要加到policy中
+        ]
+    };
+    //policy stringify再经过BASE64加密后的字符串（utf8编码格式）
+    var stringToSign = Ks3.Base64.encode(JSON.stringify(policy));
+
+    //从后端sdk获取signature签名  算法为：Signature = Base64(HMAC-SHA1(YourSecretKey, - stringToSign ) );
+    var signature = 'ZpsVUIVcwd91JM8uCwvqWUrnI54=';
+
+
+    var ks3UploadUrl;
     //支持https 上传
     if (window.location.protocol === 'https:') {
-        ks3UploadUrl = Constants.UPLOAD_HTTPS_URL;
+        ks3UploadUrl = Constants['UPLOAD_HTTPS_URL'];
     } else {
-        ks3UploadUrl = Constants.UPLOAD_HTTP_URL;
+        ks3UploadUrl = Constants['UPLOAD_HTTP_URL'];
     }
 
     var ks3Options = {
-        KSSAccessKeyId: "S1guCl0KF/pEoT6TKTR1",
-        policy: "",
-        signature: "",
+        KSSAccessKeyId: Constants['AK'],
+        policy: stringToSign,
+        signature: signature,
         bucket_name: bucketName,
         key: '${filename}',
         acl: "public-read",
@@ -72,6 +98,7 @@
     /**
      * GET Bucket （List Objects)
      *  获取bucket（空间）中object（文件对象）示例
+     *  参见：http://ks3.ksyun.com/doc/api/bucket/get.html
      */
     document.getElementById('get-bucket').onclick = function() {
         var xhr = new XMLHttpRequest();
@@ -84,13 +111,13 @@
         };
         var bucketName = "bucket4jssdk";
         var url = 'http://' + bucketName + '.kss.ksyun.com';  //元数据获取不要走cdn
-        url = addURLParam(url, listObjectParams);
+        url = Ks3.addURLParam(url, listObjectParams);
 
         xhr.onreadystatechange = function() {
             if (xhr.readyState==4) {
                 if(xhr.status >=200 && xhr.status < 300 || xhr.status ==304){
                     //xml转为json格式方便js读取
-                    document.getElementById('responsexml').innerHTML = JSON.stringify(xmlToJson(xhr.responseXML),null, 4);
+                    document.getElementById('responsexml').innerHTML = JSON.stringify(Ks3.xmlToJson(xhr.responseXML),null, 4);
                 }else{
                     alert('Request was unsuccessful: ' + xhr.status);
                 }
@@ -99,6 +126,55 @@
         //在金山云存储控制台(ks3.ksyun.com)中的”空间设置"页面需要设置对应空间(bucket)的CORS配置，允许请求来源(Allow Origin: * )和请求头(Allow Header: * )的GET请求,否则浏览器会报跨域错误
         xhr.open('GET',url,true);
         xhr.send(null);
+    };
+
+
+    /**
+     *  PUT Object 上传触发处理示例(上传图片增加水印）
+     *  参见：http://ks3.ksyun.com/doc/api/async/trigger.html
+     *  注： 这里使用了FormData序列化表单中选取的文件，XMLHttpRequest 2级定义了FormData类型，
+     *  支持的浏览器有Firefox 4+，Safari 5+，Chrome 和 Android 3+版的WebKit
+     */
+    document.getElementById('utp').onclick = function() {
+        var imgFile = document.getElementById('imgFile').files[0]; //获取文件对象
+        var formData = new FormData();
+        var objKey = imgFile.name;
+        formData.append("key", objKey);
+        formData.append("file", imgFile);
+        var bucketName = "bucket4jssdk";
+        var url = 'http://127.0.0.1:3000/' + bucketName ;
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
+                    alert("上传触发处理成功");
+                    var waterMarkImg = document.getElementById('display-adp-result').firstChild;
+
+                    //一分钟后的时间戳
+                    var  timeStampIn60Second = new Date((new Date()).valueOf() + 1000*60).valueOf();
+                    waterMarkImg.src = 'http://kss.ksyun.com/' + bucketName + '/imgWaterMark-' + objKey + '?KSSAccessKeyId=' +  encodeURIComponent(Constants['AK']) + '&Expires=' + timeStampIn60Second + '&Signature=' + encodeURIComponent(xhr.responseText);
+                }else{
+                    alert('Request was unsuccessful: ' + xhr.status);
+                }
+            }
+        };
+
+        function progressFunction(e) {
+            var progressBar = document.getElementById("progressBar");
+            if (e.lengthComputable) {
+                progressBar.max = e.total;
+                progressBar.value = e.loaded;
+            }
+        }
+        xhr.upload.addEventListener("progress", progressFunction, false);
+        xhr.open("put", url, true);
+
+        //xhr.setRequestHeader('Content-Length',imgFile.size);
+
+        xhr.setRequestHeader('Authorization','KSS ' + Constants['AK'] );
+        xhr.setRequestHeader('kss-async-process','tag=imgWaterMark&type=2&dissolve=65&gravity=NorthEast&text=6YeR5bGx5LqR&font=5b6u6L2v6ZuF6buR&fill=I2JmMTcxNw==&fontsize=500&dy=10&dx=20|tag=saveas&bucket=' + bucketName + '&object=imgWaterMark-' + objKey );
+        xhr.setRequestHeader('kss-notifyurl','http://10.4.2.38:19090/'); //替换成您接收异步处理任务完成通知的url地址
+        xhr.send(formData);
     };
 
 })();
