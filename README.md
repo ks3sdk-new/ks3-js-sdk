@@ -163,6 +163,18 @@ uploader：返回一个 plupload 插件的 Uploader 对象。 欲查看更多关
 
 答： 在不支持HTML5的浏览器中，没有进度返回。 只能在 onErrorCallBack 回调中得到上传完成信号。
 
+### Demo示例程序 ###
+运行示例程序demo/index.html，其中包括
+
+1. post方式上传文件到某个bucket中
+`注意`：如果bucket不是公开读写的，需要先鉴权，即提供policy和signature表单域，详见main.js
+
+2. 查看bucket中的文件对象（List Object），并转换成json格式
+
+3. 上传图片增加水印（异步数据处理示例）
+`注意`: 由于安全性考虑，由后台程序server.js计算signature，进行鉴权并请求ks3 API
+server.js为一个nodeJS web服务，启动后会监听本地的3000端口
+
 
 ### 许可协议 ###
 

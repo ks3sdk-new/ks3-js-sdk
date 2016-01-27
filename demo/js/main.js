@@ -9,19 +9,10 @@
         UPLOAD_HTTPS_URL: "https://kss.ksyun.com/"    //杭州region
     };
 
-
     var filelistNode = document.getElementById('filelist')
     var bucketName = "bucket4jssdk";
 
     //如果bucket不是公开读写的，需要先鉴权，即提供policy和signature表单域
-    bucketName = 'chenjin';
-
-    //Constants['AK'] = 'eNnw7t+Mel9IHT/z8tM7';
-    //bucketName = 'appdown';
-
-    //Constants['AK'] = 'HUd4AjUY8C4GaZQnzJol';
-    //bucketName = 'sanrui';
-
     var policy = {
         "expiration": "2016-02-01T12:00:00.000Z",
         "conditions": [
