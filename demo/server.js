@@ -8,13 +8,14 @@ const fs = require('fs');
 const path = require('path');
 const formidable = require('formidable');
 const KS3 = require('ks3');
-const auth = require('ks3/lib/auth')
+const auth = require('ks3/lib/auth');
+const util = require('ks3/lib/util');
 
 const ROOT = '/Users/web/ks3-js/sdk/demo';
 const hostname = '127.0.0.1';
 const port = 3000;
-const AK = 'S1guCl0KF/pEoT6TKTR1'; //replace with your AK
-const SK = 'your secret key';
+const AK = 'YOB+XnjUoALcD0nFASOP'; //replace with your AK
+const SK = 'your secret key';  // your secret key (SK)
 
 var responseHeader = {
     "Access-Control-Allow-Origin": "*",
@@ -111,6 +112,8 @@ function put(req, res) {
 
 function next(req, res) {
     var bucketName = url.parse(req.url).pathname.split('/')[1];
+    req.query = url.parse(req.url, true).query;
+
     var client = new KS3(AK, SK, bucketName);
     var key = req.body.key;
     var filePath = req.files.file.path;
@@ -128,17 +131,19 @@ function next(req, res) {
             console.log(JSON.stringify(res));
             if (res.status === 200 && res.statusCode === 200) {
                 outerRes.writeHead(200, responseHeader);
-                var resource = encodeURIComponent(key).replace(/%2F/g, '/');
+
+                //计算处理之后的文件的signature
+                var resource = '/' + util.encodeKey('imgWaterMark-' + key);
                 var getReq = {
                     method: 'GET',
-                    date: (new Date()).toUTCString(),
-                    uri: 'http://' + bucketName + '.kss.ksyun.com' + resource,
-                    resource: '/' + bucketName + '/' + resource,
+                    date: req.query.t,
+                    uri:  'http://' + bucketName + '.kss.ksyun.com' + resource,
+                    resource: '/' + bucketName + resource,
                     headers: {}
                 };
-                var authStr = auth.generateToken(SK, getReq);
-
-                outerRes.end(authStr);
+                var signature = auth.generateToken(SK, getReq);
+                console.log('signature:' + signature);
+                outerRes.end(signature);
 
                 //下载加过水印的图片到assets目录
                 setTimeout(getAdpResult, 2000);

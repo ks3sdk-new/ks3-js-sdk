@@ -496,19 +496,29 @@ function generateHeaders(header) {
  * @param bucket  bucket name
  * @param object   object key
  * @param http_verb  PUT/GET/POST/DELETE
+ * @param content_type Content-Type request header
  * @param headers  headers of request
  * @returns {*}
  */
-function generateToken(sk, bucket, object, http_verb, headers){
+function generateToken(sk, bucket, object, http_verb, content_type, headers, time_stamp){
     // Content-MD5, Content-Type, CanonicalizedKssHeaders都为空
     var canonicalized_Kss_Headers = generateHeaders(headers);
     var canonicalized_Resource = '/' + bucket + '/' + object;
-    if (headers !== '') {
-        var string2Sign = http_verb + '\n' + '' + '\n' + '' + '\n'  + canonicalized_Kss_Headers + '\n' + canonicalized_Resource;
+    if (canonicalized_Kss_Headers !== '') {
+        var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n'  + time_stamp + '\n' + canonicalized_Kss_Headers + '\n' + canonicalized_Resource;
     } else {
-        var string2Sign = http_verb + '\n' + '' + '\n' + '' + '\n'  + canonicalized_Resource;
+        var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n' + time_stamp + '\n' + canonicalized_Resource;
     }
+    console.log('string2Sign:' + string2Sign);
     var signature = b64_hmac_sha1(sk, string2Sign);
-
+    console.log('signature:' + signature);
     return signature;
 }
+
+/**
+ * 获取过期时间戳
+ * @param seconds  多少秒后过期
+ */
+function getExpires(seconds) {
+    return Math.round(new Date().getTime()/1000) + seconds;
+};

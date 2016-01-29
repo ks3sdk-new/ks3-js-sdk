@@ -4,7 +4,7 @@
      * @type {HTMLElement}
      */
     var Constants = {
-        AK: "S1guCl0KF/pEoT6TKTR1",   //replace with your AK
+        AK: "YOB+XnjUoALcD0nFASOP",   //replace with your AK
         UPLOAD_HTTP_URL: "http://kss.ksyun.com/",
         UPLOAD_HTTPS_URL: "https://kss.ksyun.com/"    //杭州region 其他region的域名参见：http://ks3.ksyun.com/doc/api/index.html
     };
@@ -12,7 +12,7 @@
     var SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
 
     var filelistNode = document.getElementById('filelist')
-    var bucketName = "bucket4jssdk";
+    var bucketName = "chenjin3";
 
     //如果bucket不是公开读写的，需要先鉴权，即提供policy和signature表单
     var policy = {
@@ -29,7 +29,7 @@
 
     //建议从后端sdk获取signature签名  算法为：Signature = Base64(HMAC-SHA1(YourSecretKey, stringToSign ) );
     var signatureFromPolicy = b64_hmac_sha1(SK, stringToSign);
-    console.log(signatureFromPolicy);
+    console.log('signatureFromPolicy:' + signatureFromPolicy);
 
 
     var ks3UploadUrl;
@@ -67,12 +67,12 @@
             var adpBtn = document.createElement("button");
             adpBtn.innerHTML = '添加水印';
             adpBtn.onclick = function(){
-                var url = ks3UploadUrl + bucketName + '/' + obj.name + '?adp';
+                var url = ks3UploadUrl + bucketName + '/' + obj.name ;
                 var kssHeaders = {
                     'kss-async-process': 'tag=imgWaterMark&type=2&dissolve=65&gravity=NorthEast&text=6YeR5bGx5LqR&font=5b6u6L2v6ZuF6buR&fill=I2JmMTcxNw==&fontsize=500&dy=10&dx=20|tag=saveas&bucket=' + bucketName + '&object=imgWaterMark-' + obj.name,
                     'kss-notifyurl': 'http://10.4.2.38:19090/'
                 };
-                var signature = generateToken(SK, bucketName, obj.name, 'PUT', kssHeaders);
+                var signature = generateToken(SK, bucketName, obj.name, 'PUT','', kssHeaders, '');
                 var xhr = new XMLHttpRequest();
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState == 4) {
@@ -81,12 +81,16 @@
                             var waterMarkImgLink = document.createElement('a');
                             waterMarkImgLink.setAttribute('target','_blank');
                             waterMarkImgLink.style.marginLeft = "30px";
-                            waterMarkImgLink.innerHTML = "imgWaterMark-" + obj.name;
+                            var processedImgName = "imgWaterMark-" + obj.name;
+                            waterMarkImgLink.innerHTML = processedImgName;
 
-                            //一分钟后的时间戳
-                            var  timeStampIn60Second = new Date((new Date()).valueOf() + 1000*60).valueOf();
+                            //10分钟后的时间戳
+                            var  timeStampIn60Second = getExpires(600);
+
+                            //根据Expires过期时间戳计算外链signature
+                            var expiresSignature = generateToken(SK, bucketName, processedImgName, 'GET', '' ,kssHeaders, timeStampIn60Second);
                             setTimeout(function(){ //异步任务，等1秒再看处理结果
-                                waterMarkImgLink.href = ks3UploadUrl + bucketName + '/imgWaterMark-' + obj.name + '?KSSAccessKeyId=' +  encodeURIComponent(Constants['AK']) + '&Expires=' + timeStampIn60Second + '&Signature=' + encodeURIComponent(signature);
+                                waterMarkImgLink.href = ks3UploadUrl + bucketName + '/imgWaterMark-' + obj.name + '?KSSAccessKeyId=' +  encodeURIComponent(Constants['AK']) + '&Expires=' + timeStampIn60Second + '&Signature=' + encodeURIComponent(expiresSignature);
                                 itemNode.appendChild(waterMarkImgLink);
                             },1000);
 
@@ -146,7 +150,7 @@
             'max-keys':'10', //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的结果在1000条以后，你可以设定 marker 的值来调整起始位置。
             prefix: null //限定响应结果列表使用的前缀
         };
-        var bucketName = "bucket4jssdk";
+        var bucketName = "chenjin3";
         var url = 'http://' + bucketName + '.kss.ksyun.com';  //元数据获取不要走cdn
         url = Ks3.addURLParam(url, listObjectParams);
 
@@ -179,8 +183,11 @@
         var objKey = imgFile.name;
         formData.append("key", objKey);
         formData.append("file", imgFile);
-        var bucketName = "bucket4jssdk";
-        var url = 'http://127.0.0.1:3000/' + bucketName ;
+
+        //10分钟后的时间戳，以秒为单位
+        var  timeStampIn60Second = getExpires( 10 * 60 );
+
+        var url = 'http://127.0.0.1:3000/' + bucketName + '?t=' + timeStampIn60Second ;
         var kssHeaders = {
             'kss-async-process': 'tag=imgWaterMark&type=2&dissolve=65&gravity=NorthEast&text=6YeR5bGx5LqR&font=5b6u6L2v6ZuF6buR&fill=I2JmMTcxNw==&fontsize=500&dy=10&dx=20|tag=saveas&bucket=' + bucketName + '&object=imgWaterMark-' + objKey,
             'kss-notifyurl': 'http://10.4.2.38:19090/'
@@ -192,9 +199,9 @@
                 if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
                     alert("上传触发处理成功");
                     var waterMarkImg = document.getElementById('display-adp-result').firstChild;
+                    console.log('Signature:' + xhr.responseText);
 
-                    //一分钟后的时间戳
-                    var  timeStampIn60Second = new Date((new Date()).valueOf() + 1000*60).valueOf();
+                    console.log('timestamp:' + timeStampIn60Second);
                     waterMarkImg.src = 'http://kss.ksyun.com/' + bucketName + '/imgWaterMark-' + objKey + '?KSSAccessKeyId=' +  encodeURIComponent(Constants['AK']) + '&Expires=' + timeStampIn60Second + '&Signature=' + encodeURIComponent(xhr.responseText);
                 }else{
                     alert('Request was unsuccessful: ' + xhr.status);
@@ -229,16 +236,14 @@
 
     document.getElementById('utp2').onclick = function() {
         var imgFile = document.getElementById('imgFile2').files[0]; //获取文件对象
-        var formData = new FormData();
         var objKey = imgFile.name;
-        formData.append("file", imgFile);
-        var bucketName = "bucket4jssdk";
+        var contentType = imgFile.type;
         var url = 'http://'+ bucketName + '.kss.ksyun.com/' + objKey;
         var kssHeaders = {
             'kss-async-process': 'tag=imgWaterMark&type=2&dissolve=65&gravity=NorthEast&text=6YeR5bGx5LqR&font=5b6u6L2v6ZuF6buR&fill=I2JmMTcxNw==&fontsize=500&dy=10&dx=20|tag=saveas&bucket=' + bucketName + '&object=imgWaterMark-' + objKey,
             'kss-notifyurl': 'http://10.4.2.38:19090/'
         };
-        var signature = '';
+        var signature = generateToken(SK, bucketName, objKey, 'PUT', contentType ,kssHeaders, '');
 
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
@@ -246,11 +251,14 @@
                 if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
                     alert("上传触发处理成功");
                     var waterMarkImg = document.getElementById('display-adp-result2').firstChild;
-                    //一分钟后的时间戳
-                    var  timeStampIn60Second = new Date((new Date()).valueOf() + 1000*60).valueOf();
-                    setTimeout(function(){
+                    //10分钟后的时间戳, s
+                    var  timeStampIn60Second = getExpires(10 * 60);
+
+                    //根据Expires过期时间戳计算外链signature
+                    var expiresSignature = generateToken(SK, bucketName, 'imgWaterMark-' + objKey, 'GET', '' ,kssHeaders, timeStampIn60Second);
+                    setTimeout(function() {
                         //异步任务，等两秒
-                        waterMarkImg.src = 'http://kss.ksyun.com/' + bucketName + '/imgWaterMark-' + objKey + '?KSSAccessKeyId=' +  encodeURIComponent(Constants['AK']) + '&Expires=' + timeStampIn60Second + '&Signature=' + encodeURIComponent(signature);
+                        waterMarkImg.src = 'http://kss.ksyun.com/' + bucketName + '/imgWaterMark-' + objKey + '?KSSAccessKeyId=' +  encodeURIComponent(Constants['AK']) + '&Expires=' + timeStampIn60Second + '&Signature=' + encodeURIComponent(expiresSignature);
                     },2000);
 
                 }else{
@@ -269,12 +277,10 @@
         xhr.upload.addEventListener("progress", progressFunction, false);
         xhr.open("put", url, true);
 
-        signature = generateToken(SK, bucketName, objKey, 'PUT', kssHeaders);
-
         xhr.setRequestHeader('Authorization','KSS ' + Constants['AK'] + ':' + signature );
         xhr.setRequestHeader('kss-async-process', kssHeaders['kss-async-process']);
         xhr.setRequestHeader('kss-notifyurl',kssHeaders['kss-notifyurl']); //替换成您接收异步处理任务完成通知的url地址
-        xhr.send(formData);
+        xhr.send(imgFile);
     };
 
 
