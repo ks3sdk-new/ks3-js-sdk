@@ -494,16 +494,16 @@ function generateHeaders(header) {
  * 根据SK和请求生成Signature（用于Authorization头部）
  * @param sk      secrete key
  * @param bucket  bucket name
- * @param object   object key
+ * @param resource  ObjectKey[?subResource]
  * @param http_verb  PUT/GET/POST/DELETE
  * @param content_type Content-Type request header
  * @param headers  headers of request
  * @returns {*}
  */
-function generateToken(sk, bucket, object, http_verb, content_type, headers, time_stamp){
+function generateToken(sk, bucket, resource, http_verb, content_type, headers, time_stamp){
     // Content-MD5, Content-Type, CanonicalizedKssHeaders都为空
     var canonicalized_Kss_Headers = generateHeaders(headers);
-    var canonicalized_Resource = '/' + bucket + '/' + object;
+    var canonicalized_Resource = '/' + bucket + '/' + resource;
     if (canonicalized_Kss_Headers !== '') {
         var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n'  + time_stamp + '\n' + canonicalized_Kss_Headers + '\n' + canonicalized_Resource;
     } else {
