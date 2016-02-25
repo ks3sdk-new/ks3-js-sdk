@@ -43,7 +43,7 @@
 
         this.defaultPluploadOptions = {
             runtimes : 'html5,flash,silverlight,html4', //上传模式，依次退化;
-            url: this.defaultKS3Options.uploadDomain || "http://kssws.ks-cdn.com/destination-bucket", 
+            url: this.defaultKS3Options.uploadDomain,
             browse_button: 'browse', //触发对话框的DOM元素自身或者其ID
             flash_swf_url : 'js/Moxie.swf', //Flash组件的相对路径
             silverlight_xap_url : 'js/Moxie.xap', //Silverlight组件的相对路径;
@@ -116,6 +116,14 @@
 //create namespace
 var Ks3 = {};
 
+Ks3.ENDPOINT = {
+    HANGZHOU : 'kss.ksyun.com',
+    AMERICA: 'ks3-us-west-1.ksyun.com',
+    BEIJING : 'ks3-cn-beijing.ksyun.com',
+    HONGKONG: 'ks3-cn-hk-1.ksyun.com',
+    SHANGHAI: 'ks3-cn-shanghai.ksyun.com'
+};
+
 /**
  * 给url添加请求参数
  * @param url
@@ -176,162 +184,145 @@ Ks3.xmlToJson = function (xml) {
 
 
 /*基于Javascript的Base64加解密算法*/
-Ks3.Base64 = {};
+Ks3.Base64 = {
+    encTable :[  /*Base64编码表*/
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O' ,'P',
+        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+        'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+        'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+        'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+        'w', 'x', 'y', 'z', '0', '1', '2', '3',
+        '4', '5', '6', '7', '8', '9', '+', '/'
+    ],
+    decTable:[ /*Base64解码表*/
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, 62, -1, -1, -1, 63, 52, 53,
+        54, 55, 56, 57, 58, 59, 60, 61, -1, -1,
+        -1, -1, -1, -1, -1, 00, 01, 02, 03, 04,
+        05, 06, 07, 08, 09, 10, 11, 12, 13, 14,
+        15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+        25, -1, -1, -1, -1, -1, -1, 26, 27, 28,
+        29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+        39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
+        49, 50, 51, -1, -1, -1, -1, -1
+    ],
+    encUTF8: function(str) { /*将任意字符串按UTF8编码*/
+        var code, res =[], len =str.length;
+        var byte1, byte2, byte3, byte4, byte5, byte6;
+        for (var i = 0; i < len; i++) {
+            //Unicode码：按范围确定字节数
+            code = str.charCodeAt(i);
 
-/*Base64编码表*/
-Ks3.Base64.encTable =[
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-    'I', 'J', 'K', 'L', 'M', 'N', 'O' ,'P',
-    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-    'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-    'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-    'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-    'w', 'x', 'y', 'z', '0', '1', '2', '3',
-    '4', '5', '6', '7', '8', '9', '+', '/'
-];
+            //单字节ascii字符：U+00000000 – U+0000007F	0xxxxxxx
+            if (code > 0x0000 && code <= 0x007F) res.push(code);
 
-/*Base64解码表*/
-Ks3.Base64.decTable =[
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, 62, -1, -1, -1, 63, 52, 53,
-    54, 55, 56, 57, 58, 59, 60, 61, -1, -1,
-    -1, -1, -1, -1, -1, 00, 01, 02, 03, 04,
-    05, 06, 07, 08, 09, 10, 11, 12, 13, 14,
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    25, -1, -1, -1, -1, -1, -1, 26, 27, 28,
-    29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
-    39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-    49, 50, 51, -1, -1, -1, -1, -1
-];
+            //双字节字符：U+00000080 – U+000007FF	110xxxxx 10xxxxxx
+            else if (code >= 0x0080 && code <= 0x07FF) {
+                byte1 = 0xC0 | ((code >> 6) & 0x1F);
+                byte2 = 0x80 | (code & 0x3F);
+                res.push(byte1, byte2);
+            }
 
-/**
- * UTF8编码规则：
- * U+00000000 – U+0000007F   0xxxxxxx
- * U+00000080 – U+000007FF   110xxxxx 10xxxxxx
- * U+00000800 – U+0000FFFF   1110xxxx 10xxxxxx 10xxxxxx
- * U+00010000 – U+001FFFFF   11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
- * U+00200000 – U+03FFFFFF   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
- * U+04000000 – U+7FFFFFFF   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
- */
+            //三字节字符：U+00000800 – U+0000FFFF	1110xxxx 10xxxxxx 10xxxxxx
+            else if (code >= 0x0800 && code <= 0xFFFF) {
+                byte1 = 0xE0 | ((code >> 12) & 0x0F);
+                byte2 = 0x80 | ((code >> 6) & 0x3F);
+                byte3 = 0x80 | (code & 0x3F);
+                res.push(byte1, byte2, byte3);
+            }
 
-/*将任意字符串按UTF8编码*/
-Ks3.Base64.encUTF8 =function(str) {
-    var code, res =[], len =str.length;
-    var byte1, byte2, byte3, byte4, byte5, byte6;
-    for (var i = 0; i < len; i++) {
-        //Unicode码：按范围确定字节数
-        code = str.charCodeAt(i);
+            //四字节字符：U+00010000 – U+001FFFFF	11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+            else if (code >= 0x00010000 && code <= 0x001FFFFF) {
+                byte1 =0xF0 | ((code>>18) & 0x07);
+                byte2 =0x80 | ((code>>12) & 0x3F);
+                byte3 =0x80 | ((code>>6) & 0x3F);
+                byte4 =0x80 | (code & 0x3F);
+                res.push(byte1, byte2, byte3, byte4);
+            }
 
-        //单字节ascii字符：U+00000000 – U+0000007F	0xxxxxxx
-        if (code > 0x0000 && code <= 0x007F) res.push(code);
+            //五字节字符：U+00200000 – U+03FFFFFF	111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+            else if (code >= 0x00200000 && code <= 0x03FFFFFF) {
+                byte1 =0xF0 | ((code>>24) & 0x03);
+                byte2 =0xF0 | ((code>>18) & 0x3F);
+                byte3 =0x80 | ((code>>12) & 0x3F);
+                byte4 =0x80 | ((code>>6) & 0x3F);
+                byte5 =0x80 | (code & 0x3F);
+                res.push(byte1, byte2, byte3, byte4, byte5);
+            }
 
-        //双字节字符：U+00000080 – U+000007FF	110xxxxx 10xxxxxx
-        else if (code >= 0x0080 && code <= 0x07FF) {
-            byte1 = 0xC0 | ((code >> 6) & 0x1F);
-            byte2 = 0x80 | (code & 0x3F);
-            res.push(byte1, byte2);
+            //六字节字符：U+04000000 – U+7FFFFFFF	1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+            else if (code >= 0x04000000 && code <= 0x7FFFFFFF) {
+                byte1 =0xF0 | ((code>>30) & 0x01);
+                byte2 =0xF0 | ((code>>24) & 0x3F);
+                byte3 =0xF0 | ((code>>18) & 0x3F);
+                byte4 =0x80 | ((code>>12) & 0x3F);
+                byte5 =0x80 | ((code>>6) & 0x3F);
+                byte6 =0x80 | (code & 0x3F);
+                res.push(byte1, byte2, byte3, byte4, byte5, byte6);
+            }
         }
+        return res;
+    },
+    encode: function(str) {
+        /**
+         * 将任意字符串用Base64加密
+         * str：要加密的字符串
+         * utf8编码格式
+         */
+        if (!str) return '';
+        var bytes = this.encUTF8(str);
+        var i = 0, len = bytes.length, res = [];
+        var c1, c2, c3;
+        while (i < len) {
+            c1 = bytes[i++] & 0xFF;
+            res.push(this.encTable[c1 >> 2]);
+            //结尾剩一个字节补2个=
+            if (i == len) {
+                res.push(this.encTable[(c1 & 0x03) << 4], '==');
+                break;
+            }
 
-        //三字节字符：U+00000800 – U+0000FFFF	1110xxxx 10xxxxxx 10xxxxxx
-        else if (code >= 0x0800 && code <= 0xFFFF) {
-            byte1 = 0xE0 | ((code >> 12) & 0x0F);
-            byte2 = 0x80 | ((code >> 6) & 0x3F);
-            byte3 = 0x80 | (code & 0x3F);
-            res.push(byte1, byte2, byte3);
-        }
+            c2 = bytes[i++];
+            //结尾剩两个字节补1个=
+            if (i == len) {
+                res.push(this.encTable[((c1 & 0x03) << 4) | ((c2 >> 4) & 0x0F)]);
+                res.push(this.encTable[(c2 & 0x0F) << 2], '=');
+                break;
+            }
 
-        //四字节字符：U+00010000 – U+001FFFFF	11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-        else if (code >= 0x00010000 && code <= 0x001FFFFF) {
-            byte1 =0xF0 | ((code>>18) & 0x07);
-            byte2 =0x80 | ((code>>12) & 0x3F);
-            byte3 =0x80 | ((code>>6) & 0x3F);
-            byte4 =0x80 | (code & 0x3F);
-            res.push(byte1, byte2, byte3, byte4);
+            c3 = bytes[i++];
+            res.push(this.encTable[((c1 & 0x3) << 4) | ((c2 >> 4) & 0x0F)]);
+            res.push(this.encTable[((c2 & 0x0F) << 2) | ((c3 & 0xC0) >> 6)]);
+            res.push(this.encTable[c3 & 0x3F]);
         }
-
-        //五字节字符：U+00200000 – U+03FFFFFF	111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-        else if (code >= 0x00200000 && code <= 0x03FFFFFF) {
-            byte1 =0xF0 | ((code>>24) & 0x03);
-            byte2 =0xF0 | ((code>>18) & 0x3F);
-            byte3 =0x80 | ((code>>12) & 0x3F);
-            byte4 =0x80 | ((code>>6) & 0x3F);
-            byte5 =0x80 | (code & 0x3F);
-            res.push(byte1, byte2, byte3, byte4, byte5);
-        }
-
-        //六字节字符：U+04000000 – U+7FFFFFFF	1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-        else if (code >= 0x04000000 && code <= 0x7FFFFFFF) {
-            byte1 =0xF0 | ((code>>30) & 0x01);
-            byte2 =0xF0 | ((code>>24) & 0x3F);
-            byte3 =0xF0 | ((code>>18) & 0x3F);
-            byte4 =0x80 | ((code>>12) & 0x3F);
-            byte5 =0x80 | ((code>>6) & 0x3F);
-            byte6 =0x80 | (code & 0x3F);
-            res.push(byte1, byte2, byte3, byte4, byte5, byte6);
-        }
+        return res.join('');
     }
-    return res;
+
 };
 
 
-
-/**
- * 将任意字符串用Base64加密
- * str：要加密的字符串
- * utf8编码格式
- */
-Ks3.Base64.encode =function(str) {
-    if (!str) return '';
-    var bytes = Ks3.Base64.encUTF8(str);
-    var i = 0, len = bytes.length, res = [];
-    var c1, c2, c3;
-    while (i < len) {
-        c1 = bytes[i++] & 0xFF;
-        res.push(Ks3.Base64.encTable[c1 >> 2]);
-        //结尾剩一个字节补2个=
-        if (i == len) {
-            res.push(Ks3.Base64.encTable[(c1 & 0x03) << 4], '==');
-            break;
-        }
-
-        c2 = bytes[i++];
-        //结尾剩两个字节补1个=
-        if (i == len) {
-            res.push(Ks3.Base64.encTable[((c1 & 0x03) << 4) | ((c2 >> 4) & 0x0F)]);
-            res.push(Ks3.Base64.encTable[(c2 & 0x0F) << 2], '=');
-            break;
-        }
-
-        c3 = bytes[i++];
-        res.push(Ks3.Base64.encTable[((c1 & 0x3) << 4) | ((c2 >> 4) & 0x0F)]);
-        res.push(Ks3.Base64.encTable[((c2 & 0x0F) << 2) | ((c3 & 0xC0) >> 6)]);
-        res.push(Ks3.Base64.encTable[c3 & 0x3F]);
-    }
-    return res.join('');
-};
+Ks3.chrsz   = 8;  /* bits per input character. 8 - ASCII; 16 - Unicode  */
+Ks3.b64pad  = "="; /* base-64 pad character. "=" for strict RFC compliance   */
 
 
-
-
-const chrsz   = 8;  /* bits per input character. 8 - ASCII; 16 - Unicode  */
-const b64pad  = ""; /* base-64 pad character. "=" for strict RFC compliance   */
 /*
  * //使用hmac_sha1算法计算字符串的签名
  *  return base-64 encoded strings
  */
-function b64_hmac_sha1(key, data) {
-    return binb2b64(core_hmac_sha1(key, data)) + '=';
+ Ks3.b64_hmac_sha1 = function(key, data) {
+    return Ks3.binb2b64(Ks3.core_hmac_sha1(key, data));
 }
 /*
  * Calculate the HMAC-SHA1 of a key and some data
  */
-function core_hmac_sha1(key, data)
+Ks3.core_hmac_sha1 = function(key, data)
 {
-    var bkey = str2binb(key);
-    if(bkey.length > 16) bkey = core_sha1(bkey, key.length * chrsz);
+    var bkey = Ks3.str2binb(key);
+    if(bkey.length > 16) bkey = core_sha1(bkey, key.length * Ks3.chrsz);
 
     var ipad = Array(16), opad = Array(16);
     for(var i = 0; i < 16; i++)
@@ -340,14 +331,14 @@ function core_hmac_sha1(key, data)
         opad[i] = bkey[i] ^ 0x5C5C5C5C;
     }
 
-    var hash = core_sha1(ipad.concat(str2binb(data)), 512 + data.length * chrsz);
-    return core_sha1(opad.concat(hash), 512 + 160);
+    var hash = Ks3.core_sha1(ipad.concat(Ks3.str2binb(data)), 512 + data.length * Ks3.chrsz);
+    return Ks3.core_sha1(opad.concat(hash), 512 + 160);
 }
 
 /*
  * Convert an array of big-endian words to a base-64 string
  */
-function binb2b64(binarray)
+Ks3.binb2b64 = function(binarray)
 {
     var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     var str = "";
@@ -358,7 +349,7 @@ function binb2b64(binarray)
             |  ((binarray[i+2 >> 2] >> 8 * (3 - (i+2)%4)) & 0xFF);
         for(var j = 0; j < 4; j++)
         {
-            if(i * 8 + j * 6 > binarray.length * 32) str += b64pad;
+            if(i * 8 + j * 6 > binarray.length * 32) str += Ks3.b64pad;
             else str += tab.charAt((triplet >> 6*(3-j)) & 0x3F);
         }
     }
@@ -369,19 +360,19 @@ function binb2b64(binarray)
  * Convert an 8-bit or 16-bit string to an array of big-endian words
  * In 8-bit function, characters >255 have their hi-byte silently ignored.
  */
-function str2binb(str)
+Ks3.str2binb = function(str)
 {
     var bin = Array();
-    var mask = (1 << chrsz) - 1;
-    for(var i = 0; i < str.length * chrsz; i += chrsz)
-        bin[i>>5] |= (str.charCodeAt(i / chrsz) & mask) << (32 - chrsz - i%32);
+    var mask = (1 << Ks3.chrsz) - 1;
+    for(var i = 0; i < str.length * Ks3.chrsz; i += Ks3.chrsz)
+        bin[i>>5] |= (str.charCodeAt(i / Ks3.chrsz) & mask) << (32 - Ks3.chrsz - i%32);
     return bin;
 }
 
 /*
  * Calculate the SHA-1 of an array of big-endian words, and a bit length
  */
-function core_sha1(x, len)
+Ks3.core_sha1 = function(x, len)
 {
     /* append padding */
     x[len >> 5] |= 0x80 << (24 - len % 32);
@@ -405,21 +396,21 @@ function core_sha1(x, len)
         for(var j = 0; j < 80; j++)
         {
             if(j < 16) w[j] = x[i + j];
-            else w[j] = rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
-            var t = safe_add(safe_add(rol(a, 5), sha1_ft(j, b, c, d)),
-                safe_add(safe_add(e, w[j]), sha1_kt(j)));
+            else w[j] = Ks3.rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
+            var t = Ks3.safe_add(Ks3.safe_add(Ks3.rol(a, 5), Ks3.sha1_ft(j, b, c, d)),
+                Ks3.safe_add(Ks3.safe_add(e, w[j]), Ks3.sha1_kt(j)));
             e = d;
             d = c;
-            c = rol(b, 30);
+            c = Ks3.rol(b, 30);
             b = a;
             a = t;
         }
 
-        a = safe_add(a, olda);
-        b = safe_add(b, oldb);
-        c = safe_add(c, oldc);
-        d = safe_add(d, oldd);
-        e = safe_add(e, olde);
+        a = Ks3.safe_add(a, olda);
+        b = Ks3.safe_add(b, oldb);
+        c = Ks3.safe_add(c, oldc);
+        d = Ks3.safe_add(d, oldd);
+        e = Ks3.safe_add(e, olde);
     }
     return Array(a, b, c, d, e);
 
@@ -429,7 +420,7 @@ function core_sha1(x, len)
  * Add integers, wrapping at 2^32. This uses 16-bit operations internally
  * to work around bugs in some JS interpreters.
  */
-function safe_add(x, y)
+Ks3.safe_add =function(x, y)
 {
     var lsw = (x & 0xFFFF) + (y & 0xFFFF);
     var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
@@ -439,7 +430,7 @@ function safe_add(x, y)
 /*
  * Bitwise rotate a 32-bit number to the left.
  */
-function rol(num, cnt)
+Ks3.rol = function(num, cnt)
 {
     return (num << cnt) | (num >>> (32 - cnt));
 }
@@ -448,7 +439,7 @@ function rol(num, cnt)
  * Perform the appropriate triplet combination function for the current
  * iteration
  */
-function sha1_ft(t, b, c, d)
+Ks3.sha1_ft = function(t, b, c, d)
 {
     if(t < 20) return (b & c) | ((~b) & d);
     if(t < 40) return b ^ c ^ d;
@@ -459,7 +450,7 @@ function sha1_ft(t, b, c, d)
 /*
  * Determine the appropriate additive constant for the current iteration
  */
-function sha1_kt(t)
+Ks3.sha1_kt = function(t)
 {
     return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
         (t < 60) ? -1894007588 : -899497514;
@@ -470,7 +461,7 @@ function sha1_kt(t)
  *  产生headers
  *  CanonicalizedKssHeaders
  */
-function generateHeaders(header) {
+Ks3.generateHeaders =function(header) {
     var str = '';
     var arr = [];
 
@@ -500,9 +491,9 @@ function generateHeaders(header) {
  * @param headers  headers of request
  * @returns {*}
  */
-function generateToken(sk, bucket, resource, http_verb, content_type, headers, time_stamp){
+Ks3.generateToken = function (sk, bucket, resource, http_verb, content_type, headers, time_stamp){
     // Content-MD5, Content-Type, CanonicalizedKssHeaders都为空
-    var canonicalized_Kss_Headers = generateHeaders(headers);
+    var canonicalized_Kss_Headers = Ks3.generateHeaders(headers);
     var canonicalized_Resource = '/' + bucket + '/' + resource;
     if (canonicalized_Kss_Headers !== '') {
         var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n'  + time_stamp + '\n' + canonicalized_Kss_Headers + '\n' + canonicalized_Resource;
@@ -510,7 +501,7 @@ function generateToken(sk, bucket, resource, http_verb, content_type, headers, t
         var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n' + time_stamp + '\n' + canonicalized_Resource;
     }
     console.log('string2Sign:' + string2Sign);
-    var signature = b64_hmac_sha1(sk, string2Sign);
+    var signature = Ks3.b64_hmac_sha1(sk, string2Sign);
     console.log('signature:' + signature);
     return signature;
 }
@@ -522,3 +513,4 @@ function generateToken(sk, bucket, resource, http_verb, content_type, headers, t
 function getExpires(seconds) {
     return Math.round(new Date().getTime()/1000) + seconds;
 };
+
