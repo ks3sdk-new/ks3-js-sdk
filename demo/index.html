@@ -4,6 +4,23 @@
 	<meta charset="UTF-8">
 	<link rel="shortcut icon" type="image/x-icon" href="./favicon.ico" media="screen" />
 	<title>JavaScript SDK</title>
+	<style>
+		tr{
+			padding: 10px;
+		}
+		th,td{
+			margin-right:40px;
+			width: 200px;
+			text-align: center;
+		}
+		th,td:first-child{
+			width: 300px;
+		}
+		#example5 .del-opt {
+		   text-decoration: underline;
+			color: red;
+		}
+	</style>
 </head>
 <body>
 	<ul id="filelist"></ul>
@@ -32,6 +49,11 @@
 		<button id="utp2" style="margin-left: 3em">Upload Trigger Processing (independent)</button>
 		<div id="display-adp-result2" style="margin-top: 1em"><img src=""></div>
 	</div>
+
+	<table id="example5">
+		<tr><th>文件名</th><th>大小</th><th>最后更新时间</th><th>操作</th></tr>
+
+	</table>
 
 	<script type="text/javascript" src="js/plupload.full.min.js"></script>
 	<script type="text/javascript" src="js/ks3jssdk.min.js"></script>

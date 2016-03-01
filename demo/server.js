@@ -20,7 +20,7 @@ const SK = 'your secret key';  // your secret key (SK)
 var responseHeader = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "PUT,POST,GET,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization,kss-async-process,kss-notifyurl"
+    "Access-Control-Allow-Headers": "Authorization,kss-async-process,kss-notifyurl,x-kss-storage-class"
 };
 
 function get(req, res) {
@@ -164,7 +164,8 @@ function next(req, res) {
         },
         {
             'kss-async-process': req.headers['kss-async-process'],
-            'kss-notifyurl': req.headers['kss-notifyurl']
+            'kss-notifyurl': req.headers['kss-notifyurl'],
+            'x-kss-storage-class' : req.headers['x-kss-storage-class']
         });
 }
 

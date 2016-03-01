@@ -9,6 +9,7 @@
             acl: "private", //上传文件访问权限,有效值: private | public-read | public-read-write | authenticated-read | bucket-owner-read | bucket-owner-full-control
             uploadDomain: "", //上传域名,http://destination-bucket.kss.ksyun.com 或者 http://kssws.ks-cdn.com/destination-bucket
             autoStart: false, //是否在文件添加完毕后自动上传
+            'x-kss-storage-class': 'STANDARD',
             onInitCallBack: function(){}, //上传初始化时调用的回调函数
             onErrorCallBack: function(){}, //发生错误时调用的回调函数
             onFilesAddedCallBack: function(){}, //文件添加到浏览器时调用的回调函数
@@ -31,7 +32,8 @@
                 "acl": this.defaultKS3Options.acl,
                 "signature" : this.defaultKS3Options.signature,
                 "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId,
-                "policy": this.defaultKS3Options.policy
+                "policy": this.defaultKS3Options.policy,
+                'x-kss-storage-class': this.defaultKS3Options['x-kss-storage-class']
             }
         } else {
             multipartParams = {
@@ -115,14 +117,6 @@
 
 //create namespace
 var Ks3 = {};
-
-Ks3.ENDPOINT = {
-    HANGZHOU : 'kss.ksyun.com',
-    AMERICA: 'ks3-us-west-1.ksyun.com',
-    BEIJING : 'ks3-cn-beijing.ksyun.com',
-    HONGKONG: 'ks3-cn-hk-1.ksyun.com',
-    SHANGHAI: 'ks3-cn-shanghai.ksyun.com'
-};
 
 /**
  * 给url添加请求参数
@@ -470,7 +464,7 @@ Ks3.generateHeaders =function(header) {
         for(var it in header){
             // step1 : 所有`x-kss`的属性都转换为小写
             if(it.indexOf(prefix) == 0){
-                arr.push((it+':'+header[it]).toLowerCase());
+                arr.push((it.toLowerCase() +':'+header[it]));
             }
         }
         // step2 : 根据属性名排序
@@ -514,3 +508,106 @@ function getExpires(seconds) {
     return Math.round(new Date().getTime()/1000) + seconds;
 };
 
+/*
+ * url endpoints for different regions
+ */
+Ks3.ENDPOINT = {
+    HANGZHOU : 'kss.ksyun.com',
+    AMERICA: 'ks3-us-west-1.ksyun.com',
+    BEIJING : 'ks3-cn-beijing.ksyun.com',
+    HONGKONG: 'ks3-cn-hk-1.ksyun.com',
+    SHANGHAI: 'ks3-cn-shanghai.ksyun.com'
+};
+
+Ks3.config = {
+    AK: '',
+    SK: '',
+    protocol:'http',
+    baseUrl:'',
+    region: '',
+    bucket: ''
+}
+
+/**
+ *  Get Bucket( List Object)  获取bucket下的objects
+ * @param bucket  : bucket name
+ * @param url     : 如：http://kss.ksyun.com/
+ * @param cb  : callback function
+ *
+ * @param {object} params
+ * {
+ *     Bucket: '', // 非必传
+ *	   delimiter: '', //分隔符，用于对一组参数进行分割的字符。
+ *	   'encoding-type': '', //指明请求KS3与KS3响应使用的编码方式。
+ *	   maker: '',         //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回结果，将从给定的 marker 开始返回列表。如果相应内容中IsTruncated为true，则可以使用返回的Contents中的最后一个key作为下次list的marker参数
+ *	   'max-keys': 0,  //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的结果在1000条以后，你可以设定 marker 的值来调整起始位置。
+ *	   prefix: '',    //限定响应结果列表使用的前缀
+ * }
+ */
+Ks3.listObject = function(params, cb) {
+    var xhr = new XMLHttpRequest();
+    var listObjectParams = {
+        delimiter: params['delimiter'],
+        'encoding-type': params['encoding-type'],
+        marker: params['marker'],
+        'max-keys': params['max-keys'],
+        prefix: params['prefix']
+    };
+    var bucketName = params.Bucket || Ks3.config.bucket;
+    var region = params.region || Ks3.config.region;
+    if (region ) {
+        Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
+    }
+    var url =  Ks3.config.protocol + '://' + Ks3.config.baseUrl + '/' + bucketName;  //元数据获取不要走cdn
+    url = Ks3.addURLParam(url, listObjectParams);
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4) {
+            if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+                //xml转为json格式方便js读取
+                cb(Ks3.xmlToJson(xhr.responseXML));
+            } else {
+                alert('Request was unsuccessful: ' + xhr.status);
+                console.log('status: ' + xhr.status);
+            }
+        }
+    };
+    //在金山云存储控制台(ks3.ksyun.com)中的”空间设置"页面需要设置对应空间(bucket)的CORS配置，允许请求来源(Allow Origin: * )和请求头(Allow Header: * )的GET请求,否则浏览器会报跨域错误
+    xhr.open('GET', url, true);
+    xhr.send(null);
+}
+
+/**
+ *  Delete Object
+ * @param {object} params
+ * {
+ *      Bucket: '' not required, bucket name
+ *      Key   : ''   Required ,   object key
+ *      region : ''   not required  bucket所在region
+ * }
+ * @param cb  : callback function
+ */
+Ks3.delObject = function(params, cb) {
+    var bucketName = params.Bucket || Ks3.config.bucket;
+    var key = encodeURIComponent(params.Key);
+    var region = params.region || Ks3.config.region;
+    if (region ) {
+        Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
+    }
+    var url = Ks3.config.protocol + '://' + Ks3.config.baseUrl + '/' + bucketName + '/' + key;
+    var signature = Ks3.generateToken(Ks3.config.SK, bucketName, key, 'DELETE', '' ,'', '');
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
+                cb(xhr.status);
+            }else {
+                alert('Request was unsuccessful: ' + xhr.status);
+                console.log('status: ' + xhr.status);
+            }
+        }
+    };
+    xhr.open("DELETE", url, true);
+    xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
+    xhr.send(null);
+};
