@@ -9,7 +9,6 @@
             acl: "private", //上传文件访问权限,有效值: private | public-read | public-read-write | authenticated-read | bucket-owner-read | bucket-owner-full-control
             uploadDomain: "", //上传域名,http://destination-bucket.kss.ksyun.com 或者 http://kssws.ks-cdn.com/destination-bucket
             autoStart: false, //是否在文件添加完毕后自动上传
-            'x-kss-storage-class': 'STANDARD',
             onInitCallBack: function(){}, //上传初始化时调用的回调函数
             onErrorCallBack: function(){}, //发生错误时调用的回调函数
             onFilesAddedCallBack: function(){}, //文件添加到浏览器时调用的回调函数
@@ -33,7 +32,7 @@
                 "signature" : this.defaultKS3Options.signature,
                 "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId,
                 "policy": this.defaultKS3Options.policy,
-                'x-kss-storage-class': this.defaultKS3Options['x-kss-storage-class']
+                'Cache-Control':this.defaultKS3Options['Cache-Control']
             }
         } else {
             multipartParams = {
@@ -41,6 +40,12 @@
                 "acl": this.defaultKS3Options.acl,
                 "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId
             }            
+        }
+
+        for(var prop in this.defaultKS3Options) {
+            if(typeof this.defaultKS3Options[prop] == 'string' && prop.indexOf('x-kss-meta-') !== -1) {
+                multipartParams[prop] = this.defaultKS3Options[prop];
+            }
         }
 
         this.defaultPluploadOptions = {
