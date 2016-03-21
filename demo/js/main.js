@@ -137,6 +137,13 @@
                 itemNode.id = objArray[i].id;
                 filelistNode.appendChild(itemNode);
             }
+
+        },
+        onBeforeUploadCallBack: function(uploader, obj) {
+            //可以在这里更新object key
+            //var newObjectKey = 'yourRenamedFileName_' + obj.name;
+            //uploader.settings.multipart_params['key'] =  newObjectKey;
+            //obj.name = newObjectKey;
         },
         onErrorCallBack: function(uploader, errObject){
             alert(errObject.code + " : Error happened in uploading " + errObject.file.name + " ( " + errObject.message + " )");
@@ -329,3 +336,5 @@
     };
     
 })();
+
+

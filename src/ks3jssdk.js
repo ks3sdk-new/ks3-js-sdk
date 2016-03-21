@@ -616,3 +616,5 @@ Ks3.delObject = function(params, cb) {
     xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
     xhr.send(null);
 };
+
+
