@@ -20,7 +20,7 @@
     Ks3.config.AK = 'YOB+XnjUoALcD0nFASOP';  //TODO： 请替换为您的AK
     Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
     Ks3.config.SK = '0c8JNIOjSJnvNGyd+khIDOKn63OV+oELowAHdzpR';
-    Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region的endpoint， 如杭州region： HANGZHOU, 全部region参见：http://ks3.ksyun.com/doc/api/index.html
+    Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'chenjin3';  // TODO : 设置默认bucket name
 
     var filelistNode = document.getElementById('filelist');
