@@ -31,8 +31,8 @@
                 "acl": this.defaultKS3Options.acl,
                 "signature" : this.defaultKS3Options.signature,
                 "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId,
-                "policy": this.defaultKS3Options.policy,
-                'Cache-Control':this.defaultKS3Options['Cache-Control']
+                "policy": this.defaultKS3Options.policy
+                //,'Cache-Control':this.defaultKS3Options['Cache-Control']
             }
         } else {
             multipartParams = {

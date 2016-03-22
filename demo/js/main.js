@@ -19,7 +19,6 @@
 
     Ks3.config.AK = 'YOB+XnjUoALcD0nFASOP';  //TODO： 请替换为您的AK
     Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
-    Ks3.config.SK = '0c8JNIOjSJnvNGyd+khIDOKn63OV+oELowAHdzpR';
     Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'chenjin3';  // TODO : 设置默认bucket name
 
@@ -37,8 +36,8 @@
             ["starts-with", "$key", ""],
             ["starts-with","$acl", "public-read"],
             ["starts-with", "$name", ""],   //表单中传了name字段，也需要加到policy中
-            ["starts-with", "$x-kss-meta-cache-control",""],  //必须只包含小写字符
-            ["starts-with", "$Cache-Control",""]
+            ["starts-with", "$x-kss-meta-cache-control",""]  //必须只包含小写字符
+            //,["starts-with", "$Cache-Control",""]
         ]
     };
     //policy stringify再经过BASE64加密后的字符串（utf8编码格式）
@@ -68,7 +67,7 @@
         uploadDomain: ks3UploadUrl  + bucketName,
         autoStart: false,
         'x-kss-meta-Cache-Control': 'max-age=60',
-        'Cache-Control': 'max-age=60',
+        //'Cache-Control': 'max-age=60',
         onUploadProgressCallBack: function(uploader, obj){
             var itemNode = document.getElementById(obj.id);
             var resultNode = itemNode.querySelector('span');
