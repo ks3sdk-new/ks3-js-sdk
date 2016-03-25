@@ -94,12 +94,13 @@
             var adpBtn = document.createElement("button");
             adpBtn.innerHTML = '添加水印';
             adpBtn.onclick = function(){
-                var url = ks3UploadUrl + bucketName + '/' + obj.name + '?adp' ;
+                var objKey =  encodeURIComponent(obj.name);
+                var url = ks3UploadUrl + bucketName + '/' + objKey + '?adp' ;
                 var kssHeaders = {
                     'kss-async-process': 'tag=imgWaterMark&type=2&dissolve=65&gravity=NorthEast&text=6YeR5bGx5LqR&font=5b6u6L2v6ZuF6buR&fill=I2JmMTcxNw==&fontsize=500&dy=10&dx=20|tag=saveas&bucket=' + bucketName + '&object=imgWaterMark-' + obj.name,
                     'kss-notifyurl': 'http://10.4.2.38:19090/'
                 };
-                var signature = Ks3.generateToken(Ks3.config.SK, bucketName, obj.name + '?adp', 'PUT','', kssHeaders, '');
+                var signature = Ks3.generateToken(Ks3.config.SK, bucketName, objKey + '?adp', 'PUT','', kssHeaders, '');
                 var xhr = new XMLHttpRequest();
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState == 4) {
@@ -292,7 +293,7 @@
 
     document.getElementById('utp2').onclick = function() {
         var imgFile = document.getElementById('imgFile2').files[0]; //获取文件对象
-        var objKey = imgFile.name;
+        var objKey = encodeURIComponent(imgFile.name);
         var contentType = imgFile.type;
         //var url = 'http://'+ bucketName + '.kss.ksyun.com/' + objKey;
 
