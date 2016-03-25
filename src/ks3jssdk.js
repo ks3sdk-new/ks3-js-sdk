@@ -32,7 +32,12 @@
                 "signature" : this.defaultKS3Options.signature,
                 "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId,
                 "policy": this.defaultKS3Options.policy
-                //,'Cache-Control':this.defaultKS3Options['Cache-Control']
+                ,'Cache-Control':this.defaultKS3Options['Cache-Control']
+                ,'Expires': this.defaultKS3Options['Expires']
+                ,'Content-Disposition': this.defaultKS3Options['Content-Disposition']
+                ,'Content-Encoding': this.defaultKS3Options['Content-Encoding']
+                ,'Content-Type': this.defaultKS3Options['Content-Type']
+                ,'Content-Encoding': this.defaultKS3Options['Content-Encoding']
             }
         } else {
             multipartParams = {
