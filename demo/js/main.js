@@ -17,8 +17,9 @@
      * @type {HTMLElement}
      */
 
-    Ks3.config.AK = 'YOB+XnjUoALcD0nFASOP';  //TODO： 请替换为您的AK
+    Ks3.config.AK = 'HUd4AjUY8C4WBy7exNo1';  //TODO： 请替换为您的AK
     Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
+    Ks3.config.SK = 'gVIJGjAcJJMX0rVCuuAS41BlH5p2pmesT21xdB7E';
 
     Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'chenjin3';  // TODO : 设置默认bucket name
@@ -199,7 +200,7 @@
                 /**
                  * 以表格展示bucket中的object
                  */
-                var tableEle = document.getElementById('example5');
+                var tableEle = document.getElementById('exampleForDeleteFile');
                 var objectArray =  json['ListBucketResult']['Contents'];
                 for(var i= 0, len = objectArray.length; i< len; i++) {
                     var item = document.createElement("tr");
@@ -342,6 +343,24 @@
         xhr.setRequestHeader('x-kss-storage-class', 'STANDARD');
         xhr.send(imgFile);
     };
+
+
+    /**
+     * 下载文件（支持断点续传）
+     */
+    document.getElementById('downloadBigFileBtn').onclick = function() {
+        Ks3.download(
+            {
+                Bucket: 'sanrui',
+                Key:'jssdk/book.pdf'
+            },
+            function(err, results) {
+                if(err) {
+                    console.log(err);
+                }
+                console.log(JSON.stringify(results));
+            });
+    }
     
 })();
 

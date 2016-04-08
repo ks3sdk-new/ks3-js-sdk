@@ -16,7 +16,7 @@
 		th,td:first-child{
 			width: 300px;
 		}
-		#example5 .del-opt {
+		#exampleForDeleteFile .del-opt {
 		   text-decoration: underline;
 			color: red;
 		}
@@ -50,13 +50,21 @@
 		<div id="display-adp-result2" style="margin-top: 1em"><img src=""></div>
 	</div>
 
-	<table id="example5">
+	<table id="exampleForDeleteFile" style="margin-top:20px;">
 		<tr><th>文件名</th><th>大小</th><th>最后更新时间</th><th>操作</th></tr>
 
 	</table>
 
+	<div id="exampleForDownloadFile" style="margin-top:20px; color: darkred">
+		<span>http://sanrui.kss.ksyun.com/jssdk/book.pdf</span>
+		<button id="downloadBigFileBtn">下载大文件</button>
+		<progress id="downloadProgressBar" value="0" max="100"></progress>
+		<span style="margin-left:10px" id="downloadPercent"></span>
+	</div>
+
 	<script type="text/javascript" src="js/plupload.full.min.js"></script>
-	<script type="text/javascript" src="js/ks3jssdk.min.js"></script>
+	<script type="text/javascript" src="lib/async.min.js"></script>
+	<script type="text/javascript" src="js/ks3jssdk.js"></script>
 	<script type="text/javascript" src="js/main.js"></script>
 </body>
 </html>
