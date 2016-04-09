@@ -504,9 +504,9 @@ Ks3.generateToken = function (sk, bucket, resource, http_verb, content_type, hea
     } else {
         var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n' + time_stamp + '\n' + canonicalized_Resource;
     }
-    console.log('string2Sign:' + string2Sign);
+    //console.log('string2Sign:' + string2Sign);
     var signature = Ks3.b64_hmac_sha1(sk, string2Sign);
-    console.log('signature:' + signature);
+    //console.log('signature:' + signature);
     return signature;
 }
 
@@ -652,7 +652,7 @@ Ks3.headObject = function(params, cb) {
     if (region ) {
         Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
     }
-    var bucketName = params.Bucket || this.bucketName || '';
+    var bucketName = params.Bucket || Ks3.config.bucket || '';
     if(!bucketName) {
         alert('require the bucket name');
     }
@@ -664,10 +664,10 @@ Ks3.headObject = function(params, cb) {
         if (xhr.readyState == 4) {
             if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
                 //前端需要访问的头需要在CORS设置的Exposed Header中显式列出
-                cb(null, xhr.getAllResponseHeaders());
+                cb(null, xhr);
             }else {
                 console.log('status: ' + xhr.status);
-                cb({"status":xhr.status}, xhr.getAllResponseHeaders());
+                cb({"msg":"request failed"}, xhr);
             }
         }
     };
@@ -694,7 +694,7 @@ Ks3.getObject = function(params, cb) {
     if (region ) {
         Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
     }
-    var bucketName = params.Bucket || this.bucketName || '';
+    var bucketName = params.Bucket || Ks3.config.bucket || '';
     if(!bucketName) {
         alert('require the bucket name');
     }
@@ -703,17 +703,15 @@ Ks3.getObject = function(params, cb) {
     var type = 'GET';
     var signature = Ks3.generateToken(Ks3.config.SK, bucketName, key, type, '' ,'', '');
 
-    BlobBuilder = window.MozBlobBuilder || window.WebKitBlobBuilder || window.BlobBuilder;
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
-                var bb = new BlobBuilder();
-                bb.append(this.response);
-                cb(null, bb, xhr.getAllResponseHeaders());
+                var bb = new Blob([this.response],{type: this.getResponseHeader('Content-Type')});  //from IE 10
+                cb(null, bb, xhr);
             }else {
                 console.log('status: ' + xhr.status);
-                cb({"status":xhr.status}, bb, xhr.getAllResponseHeaders());
+                cb({"msg":"request failed"}, bb, xhr);
             }
         }
     };
@@ -742,8 +740,8 @@ Ks3.getObject = function(params, cb) {
 Ks3.download = function(params, cb) {
     var bucketName = params.Bucket || Ks3.config.bucket;
     // 这个地方不能进行encode
-    var key = params.Key ;
-    var filePath =  params.filePath || bucketName + '-' + key ;
+    var key = params.Key;
+    var filePath =  params.filePath || bucketName + '-' + key.replace('/','-') ; //因为浏览器文件系统不能在不存在的目录下直接创建文件，故将目录转为文件名的前缀
 
     if (!key) {
         alert('require the object Key');
@@ -758,20 +756,6 @@ Ks3.download = function(params, cb) {
     function onError(e) {
         console.log('Error', e);
     }
-    function writeToFileSystem(blob, contentType, path) {
-        window.requestFileSystem(window.TEMPORARY,  TEMP_SPACE, function(fs) {
-            fs.root.getFile('image.png', {create: true}, function(fileEntry) {
-                fileEntry.createWriter(function(writer) {
-                    writer.onwrite = function(e) {console.log(e)};
-                    writer.onerror = function(e) {console.log(e)};
-
-                    writer.seek(writer.length); // Start write position at EOF.
-                    writer.write(blob.getBlob(contentType));
-                }, onError);
-            }, onError);
-        }, onError);
-    }
-
     // 用户要下载生成的文件
     var downFileName = filePath + '.download';
 
@@ -792,16 +776,15 @@ Ks3.download = function(params, cb) {
                  * 重置记录进度的配置文件，删除下载了部分的重名文件
                  * @param config
                  */
-                function resetConfig(config) {
-                    localStorage.setItem(filePath, config);
-                    var tmpConfig = JSON.parse(localStorage.getItem(filePath));
+                function resetConfig(conf) {
+                    localStorage.setItem(filePath, JSON.stringify(conf));
                     index = 0;
 
                     //如果有重名文件downFileName，删除
                     window.requestFileSystem(window.TEMPORARY, TEMP_SPACE, function(fs) {
                         fs.root.getFile(downFileName, {create: false}, function(fileEntry) {
                             fileEntry.remove(function() {
-                                console.log('File removed.');
+                                console.log(downFileName + ' File removed.');
                             }, onError);
                         }, onError);
                     }, onError);
@@ -812,11 +795,11 @@ Ks3.download = function(params, cb) {
                  * 从云端获取文件元数据
                  */
                 console.log('远程获取元数据');
-                Ks3.headObject(params, function(err, resHeaders) {
+                Ks3.headObject(params, function(err, res) {
                     if (err) {
                         callback(err);
                     } else {
-                        var length = resHeaders['content-length'];
+                        var length = res.getResponseHeader('content-length');
                         count = parseInt(length / chunk) + (length % chunk == 0 ? 0 : 1);
                         if (count == 0) {
                             callback({
@@ -824,7 +807,7 @@ Ks3.download = function(params, cb) {
                             })
                         } else if (localStorage && localStorage[filePath]) { // 之前已经有配置信息了
                             config = JSON.parse(localStorage.getItem(filePath));
-                            if (config['lastModifyTime'] == resHeaders['Last-Modified']) {
+                            if (config['lastModifyTime'] == res.getResponseHeader('Last-Modified')) {
                                 console.log('本地读取数据');
                                 count = config['count'];
                                 index = config['index'];
@@ -836,7 +819,7 @@ Ks3.download = function(params, cb) {
                                     "chunk": chunk,
                                     "count": count,
                                     "index": 0,
-                                    "lastModifyTime": resHeaders['Last-Modified']
+                                    "lastModifyTime": res.getResponseHeader('Last-Modified')
                                 };
                                 resetConfig(config);
                             }
@@ -848,7 +831,7 @@ Ks3.download = function(params, cb) {
                                 "chunk": chunk,
                                 "count": count,
                                 "index": 0,
-                                "lastModifyTime": resHeaders['Last-Modified']
+                                "lastModifyTime": res.getResponseHeader('Last-Modified')
                             };
                             resetConfig(config);
                         }
@@ -864,11 +847,25 @@ Ks3.download = function(params, cb) {
                 var progressBar = document.getElementById("downloadProgressBar");
                 progressBar.max = count;
 
+                function writeToFileSystem(blob, path) {
+                    window.requestFileSystem(window.TEMPORARY,  TEMP_SPACE, function(fs) {
+                        fs.root.getFile(path, {create: true}, function(fileEntry) {
+                            fileEntry.createWriter(function(writer) {
+                                var len = writer.length;
+                                writer.seek(len); // Start write position at EOF.
+                                console.log('download file length: ' + len);
+                                writer.write(blob);
+                            }, onError);
+                        }, onError);
+                    }, onError);
+                }
+
+
                 var downHandler = function() {
                     //更新下载进度
                     progressBar.value = index;
                     var percent = index + '/' + count;
-                    document.getElementById('downloadPercent').text(percent);
+                    document.getElementById('downloadPercent').innerText = percent;
 
                     if (index + 1 > count) { // 下载结束
                         console.log('下载结束')
@@ -876,17 +873,18 @@ Ks3.download = function(params, cb) {
                     } else { // 还没下载完,继续进行下载
                         console.log('进行下载:', index, '/', count);
                         Ks3.getObject({
+                                Bucket:bucketName,
                                 Key: key,
                                 range: 'bytes=' + index * chunk + '-' + ((index + 1) * chunk - 1)
                             },
-                            function(err, data, resHeaders) {
+                            function(err, data, res) {
                                 if (err) {
                                     callback(err, data);
                                 } else {
-                                    writeToFileSystem(data, resHeaders['Content-Type'], downFileName);
+                                    writeToFileSystem(data, downFileName);
                                     index = index + 1;
                                     config['index'] = index;
-                                    localStorage.setItem(filePath, config);
+                                    localStorage.setItem(filePath, JSON.stringify(config));
                                     downHandler();
                                 }
                             });
