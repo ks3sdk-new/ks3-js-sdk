@@ -361,7 +361,46 @@
                 console.log(JSON.stringify(results));
             });
     }
-    
+
+
+    /**
+     * 上传文件（支持断点续传）
+     */
+    document.getElementById('uploadBigFile').onclick = function() {
+        //Ks3.multitpart_upload_init({
+        //    Bucket: 'sanrui',
+        //    Key:'jssdk/book2.pdf',
+        //    ACL: 'public-read',
+        //    ContentType : 'application/pdf'
+        //}, function(err, uploadId){
+        //    if(err) {
+        //        console.error(err);
+        //    }else{
+        //        console.log('uploadId: ' + uploadId);
+        //    }
+        //});
+        /**
+         * 文件名，最后修改时间，bucket和object key都没变化的情况，续传
+         */
+        var file = document.getElementById('bigFile').files[0];
+
+        Ks3.multipartUpload({
+            Bucket: 'sanrui',
+            Key:'jssdk/book2.pdf',
+            region: 'HANGZHOU',
+            ACL: 'public-read',
+            ContentType : 'application/pdf',
+            File: file
+        }, function(err, res){
+            if(err) {
+                console.error(err);
+            }else{
+                console.log('res: ' + JSON.stringify(res));
+            }
+        });
+
+    }
+
 })();
 
 
