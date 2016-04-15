@@ -6,6 +6,7 @@ module.exports = function(grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
     dist: 'dist',
+    src: 'src',
     filename: 'ks3jssdk',
     uglify: {
       options: {
@@ -22,7 +23,14 @@ module.exports = function(grunt) {
           {expand: true,
           src: ['<%= filename %>.min.js'],
           cwd:  '<%= dist %>/',
-          dest: 'demo/js/'}, 
+          dest: 'demo/js/'},
+
+          {
+            expand: true,
+            src: ['<%= filename %>.js'],
+            cwd:  '<%= src %>/',
+            dest: 'demo/js/'
+          }
         ]
       }
     },

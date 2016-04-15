@@ -21,6 +21,10 @@
     Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
     Ks3.config.SK = 'gVIJGjAcJJMX0rVCuuAS41BlH5p2pmesT21xdB7E';
 
+
+    Ks3.config.AK = 'YOB+XnjUoAKjQ6y3OvhL'; //测试环境 qq
+    Ks3.config.SK = 'oNsS+Xncbw7ZVJgEz4C3bOdZhtf69HnszY3xt1D7';
+
     Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'chenjin3';  // TODO : 设置默认bucket name
 

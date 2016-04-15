@@ -504,7 +504,7 @@ Ks3.generateToken = function (sk, bucket, resource, http_verb, content_type, hea
     } else {
         var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n' + time_stamp + '\n' + canonicalized_Resource;
     }
-    //console.log('string2Sign:' + string2Sign);
+    console.log('string2Sign:' + string2Sign);
     var signature = Ks3.b64_hmac_sha1(sk, string2Sign);
     //console.log('signature:' + signature);
     return signature;
