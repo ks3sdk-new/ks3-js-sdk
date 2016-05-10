@@ -17,19 +17,24 @@
      * @type {HTMLElement}
      */
 
+    //sanrui 线上
     Ks3.config.AK = 'HUd4AjUY8C4WBy7exNo1';  //TODO： 请替换为您的AK
     Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
     Ks3.config.SK = 'gVIJGjAcJJMX0rVCuuAS41BlH5p2pmesT21xdB7E';
 
 
-    Ks3.config.AK = 'YOB+XnjUoAKjQ6y3OvhL'; //测试环境 qq
-    Ks3.config.SK = 'oNsS+Xncbw7ZVJgEz4C3bOdZhtf69HnszY3xt1D7';
+    //Ks3.config.AK = 'YOB+XnjUoAKjQ6y3OvhL'; //测试环境 qq
+    //Ks3.config.SK = 'oNsS+Xncbw7ZVJgEz4C3bOdZhtf69HnszY3xt1D7';
 
-    Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
-    Ks3.config.bucket = 'chenjin3';  // TODO : 设置默认bucket name
+    //sanrui 测试环境
+    Ks3.config.AK = 'HUd4AjUY8C4GaZQnzJol';
+    Ks3.config.SK = 'JWJrOcSOb6HQqYeFjPWOlKEcQ1Y8tOx8JHFIXupT';
+
+        Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
+    Ks3.config.bucket = 'sanrui';  // TODO : 设置默认bucket name
 
     var filelistNode = document.getElementById('filelist');
-    var bucketName = "chenjin3";   //TODO: 请替换为您需要上传文件的bucket名称
+    var bucketName = "sanrui";   //TODO: 请替换为您需要上传文件的bucket名称
 
     /*
      *  如果bucket不是公开读写的，需要先鉴权，即提供policy和signature表单
@@ -198,7 +203,7 @@
     (function listObjects() {
         Ks3.listObject(
             {
-                Bucket: 'chenjin3',
+                Bucket: bucketName,
                 'max-keys': 10
             },function(json) {
                 /**
@@ -353,7 +358,7 @@
      * 下载文件（支持断点续传）
      */
     document.getElementById('downloadBigFileBtn').onclick = function() {
-        Ks3.download(
+        blockDownload(
             {
                 Bucket: 'sanrui',
                 Key:'jssdk/book.pdf'
@@ -366,24 +371,16 @@
             });
     }
 
+    document.getElementById('stopDownload').onclick = function() {
+        Ks3.config.stopFlag = true;
+    };
+
 
     /**
      * 上传文件（支持断点续传）
      */
     var fileToBeUpload; //被上传的文件的文件名
     document.getElementById('uploadBigFile').onclick = function() {
-        //Ks3.multitpart_upload_init({
-        //    Bucket: 'sanrui',
-        //    Key:'jssdk/book2.pdf',
-        //    ACL: 'public-read',
-        //    ContentType : 'application/pdf'
-        //}, function(err, uploadId){
-        //    if(err) {
-        //        console.error(err);
-        //    }else{
-        //        console.log('uploadId: ' + uploadId);
-        //    }
-        //});
         /**
          * 文件名，最后修改时间，bucket和object key都没变化的情况，续传
          */
@@ -394,11 +391,15 @@
             Key: fileToBeUpload,
             region: 'HANGZHOU',
             ACL: 'public-read',
-            ContentType : 'vido/mp4',
+            ContentType : 'video/mp4',
             File: file
         }, function(err, res){
             if(err) {
-                console.error(JSON.stringify(err));
+                if(err.msg != 'stop') {
+                    console.error(err);
+                }else{
+                    console.log(err);
+                }
             }else{
                 console.log('res: ' + JSON.stringify(res));
             }
@@ -421,7 +422,7 @@
                 UploadId: Ks3.config.currentUploadId
             },function(err,res) {
                 if(err) {
-                    console.error(err);
+                    console.log(err);
                 }else{
                     console.log('res: ' + JSON.stringify(res));
 
@@ -429,7 +430,7 @@
                     var len = localStorage.length;
                     for(var i=0; i< len; i++) {
                         var itemKey = localStorage.key(i);
-                        if(itemKey.endWith(bucketName + '-' + fileToBeUpload)) {
+                        if(itemKey.endWith(bucketName + '-' + Ks3.encodeKey(fileToBeUpload))) {
                             localStorage.removeItem(itemKey);
                         }
                     }
@@ -608,7 +609,7 @@ function multipartUpload (params, cb) {
                 function retry(err) {
                     console.log('upload ERROR:', err);
                     if (currentRetries > Ks3.config.retries) {
-                        throw err
+                        throw err;
                     } else {
                         currentRetries = currentRetries + 1;
                         config['retries'] = currentRetries;
@@ -619,13 +620,6 @@ function multipartUpload (params, cb) {
                 }
                 // 真正往服务端传递数据
                 function up() {
-                    //暂停
-                    if(Ks3.config.stopFlag) {
-                        callback({
-                            msg: "Suspended"
-                        });
-                    }
-
                     console.log('正在上传 ', 'index: ' + index);
                     var start = (index - 1) * chunkSize;
                     // 判断是否已经全部都传完了
@@ -643,12 +637,18 @@ function multipartUpload (params, cb) {
                                     if (err) {
                                         retry(err);
                                     } else {
-                                        config['index'] = index;
-                                        progressBar.value = config['index'];
-                                        config['etags'][index] = etag;
-                                        localStorage.setItem(progressKey, JSON.stringify(config));
-                                        index = index + 1;
-                                        up();
+                                        if(!Ks3.config.stopFlag) {
+                                            config['index'] = index;
+                                            progressBar.value = config['index'];
+                                            config['etags'][index] = etag;
+                                            localStorage.setItem(progressKey, JSON.stringify(config));
+                                            index = index + 1;
+                                            up();
+                                        }else {
+                                            callback({
+                                                msg: "stop"
+                                            });
+                                        }
                                     }
                                 });
                             } catch(e) {
@@ -667,6 +667,8 @@ function multipartUpload (params, cb) {
                         })
                     }
 
+
+
                     /**
                      * 生成合并分块上传使用的xml
                      */
@@ -684,18 +686,232 @@ function multipartUpload (params, cb) {
                         return str;
                     }
                 };
+
                 up();
             }]
         },
         function(err, results) {
-            if (err) throw err;
-            //删除配置
-            localStorage.removeItem(progressKey);
+            if (err) {
+                //throw err;
+            }else{
+                //删除配置
+                localStorage.removeItem(progressKey);
+            }
             if (cb) {
                 cb(err, results);
             }
         });
 
+}
 
 
+
+/**
+ * 断点续传下载
+ * 文件分片下载进度存储于localStorage（以filePath做关键字索引文件）
+ * @param {object} params
+ * {
+ *      Bucket: '' not required, bucket name
+ *      Key   : ''   Required ,   object key
+ *      filePath: '' Required,    file path to save
+ *      chunk: ''  not required, chunk size by bytes, default is 100 * 1024 B
+ * }
+ */
+function blockDownload (params, cb) {
+    var bucketName = params.Bucket || Ks3.config.bucket;
+    // 这个地方不能进行encode
+    var key = params.Key;
+    var filePath =  params.filePath || bucketName + '-' + key.replace('/','-') ; //因为浏览器文件系统不能在不存在的目录下直接创建文件，故将目录转为文件名的前缀
+
+    if (!key) {
+        alert('require the object Key');
+    }
+
+    var TEMP_SPACE = 1024 * 1024 * 1024 ; // 1GB
+
+
+    window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
+    function onError(e) {
+        console.log('Error', e);
+    }
+    // 用户要下载生成的文件
+    var downFileName = filePath + '.download';
+
+    var config = null; //配置信息集合
+    // 分块大小
+    var chunk = params.chunk || 1 * 1024 * 100;
+    var count = 0;
+    var index = 0;
+
+    async.auto({
+            /**
+             * 初始化或者读取configFile
+             * 1. 获取文件大小
+             * 2. 并且根据分块大小计算出总共请求次数
+             */
+            init: function(callback) {
+                /**
+                 * 重置记录进度的配置文件，删除下载了部分的重名文件
+                 * @param config
+                 */
+                function resetConfig(conf) {
+                    localStorage.setItem(filePath, JSON.stringify(conf));
+                    index = 0;
+
+                    //如果有重名文件downFileName，删除
+                    window.requestFileSystem(window.TEMPORARY, TEMP_SPACE, function(fs) {
+                        fs.root.getFile(downFileName, {create: false}, function(fileEntry) {
+                            fileEntry.remove(function() {
+                                console.log(downFileName + ' File removed.');
+                            }, onError);
+                        }, onError);
+                    }, onError);
+                };
+
+                //重置暂停标示
+                Ks3.config.stopFlag = false;
+                /**
+                 * 从云端获取文件元数据
+                 */
+                console.log('远程获取元数据');
+                Ks3.headObject(params, function(err, res) {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        var length = res.getResponseHeader('content-length');
+                        count = parseInt(length / chunk) + (length % chunk == 0 ? 0 : 1);
+                        if (count == 0) {
+                            callback({
+                                msg: '文件大小为0'
+                            })
+                        } else if (localStorage && localStorage[filePath]) { // 之前已经有配置信息了
+                            config = JSON.parse(localStorage.getItem(filePath));
+                            if (config['lastModifyTime'] == res.getResponseHeader('Last-Modified')) {
+                                console.log('本地读取数据');
+                                count = config['count'];
+                                index = config['index'];
+                            } else {
+                                config = {
+                                    "BUCKET": bucketName,
+                                    "KEY": key,
+                                    "path": filePath,
+                                    "chunk": chunk,
+                                    "count": count,
+                                    "index": 0,
+                                    "lastModifyTime": res.getResponseHeader('Last-Modified')
+                                };
+                                resetConfig(config);
+                            }
+                        } else { //无配置信息
+                            config = {
+                                "BUCKET": bucketName,
+                                "KEY": key,
+                                "path": filePath,
+                                "chunk": chunk,
+                                "count": count,
+                                "index": 0,
+                                "lastModifyTime": res.getResponseHeader('Last-Modified')
+                            };
+                            resetConfig(config);
+                        }
+                        callback(null);
+                    }
+                });
+            },
+            /**
+             * 下载分块数据,并追加到文件末尾
+             */
+            down: ['init', function(callback, result) {
+                // 下载逻辑
+                var progressBar = document.getElementById("downloadProgressBar");
+                progressBar.max = count;
+
+                function writeToFileSystem(blob, path) {
+                    window.requestFileSystem(window.TEMPORARY,  TEMP_SPACE, function(fs) {
+                        fs.root.getFile(path, {create: true}, function(fileEntry) {
+                            fileEntry.createWriter(function(writer) {
+                                var len = writer.length;
+                                writer.seek(len); // Start write position at EOF.
+                                console.log('download file length: ' + len);
+                                writer.write(blob);
+                            }, onError);
+                        }, onError);
+                    }, onError);
+                }
+
+
+                var downHandler = function() {
+                    if(Ks3.config.stopFlag) {
+                        callback({
+                           msg: 'stop'
+                        });
+                    }else{
+                        //更新下载进度
+                        progressBar.value = index;
+                        var percent = index + '/' + count;
+                        document.getElementById('downloadPercent').innerText = percent;
+
+                        if (index + 1 > count) { // 下载结束
+                            console.log('下载结束')
+                            callback(null);
+                        } else { // 还没下载完,继续进行下载
+                            console.log('进行下载:', index, '/', count);
+                            Ks3.getObject({
+                                    Bucket:bucketName,
+                                    Key: key,
+                                    range: 'bytes=' + index * chunk + '-' + ((index + 1) * chunk - 1)
+                                },
+                                function(err, data, res) {
+                                    if (err) {
+                                        callback(err, data);
+                                    } else {
+                                        writeToFileSystem(data, downFileName);
+                                        index = index + 1;
+                                        config['index'] = index;
+                                        localStorage.setItem(filePath, JSON.stringify(config));
+                                        downHandler();
+                                    }
+                                });
+                        }
+                    }
+                };
+
+                downHandler();
+            }]
+        },
+        function(err, results) {
+            /**
+             * 将浏览器文件系统中的文件拷贝到用户文件系统中
+             */
+            function copyFileInBrowserRootToUserOS(fromFilePath, toFilePath) {
+                window.requestFileSystem(window.TEMPORARY, TEMP_SPACE, function(fs) {
+                    fs.root.getFile(fromFilePath, {create: false}, function(fileEntry) {
+                        fileEntry.file(function(file) {
+                            //downloadFile
+                            var aLink = document.createElement('a');
+                            var evt = document.createEvent("HTMLEvents");
+                            evt.initEvent("click", false, false);//initEvent 不加后两个参数在FF下会报错
+                            aLink.download = toFilePath;
+                            window.URL = window.URL || window.webkitURL;
+                            aLink.href = window.URL.createObjectURL(file);
+                            aLink.dispatchEvent(evt);
+                        }, onError);
+                    }, onError);
+                }, onError);
+            }
+
+            if (err) {
+                if (cb) {
+                    cb(err, results);
+
+                }
+            } else {
+                localStorage.removeItem(filePath);
+
+                copyFileInBrowserRootToUserOS(downFileName, filePath);
+                if (cb) {
+                    cb(err, {msg:'success',path:filePath});
+                }
+            }
+        })
 }
