@@ -504,7 +504,7 @@ Ks3.generateToken = function (sk, bucket, resource, http_verb, content_type, hea
     } else {
         var string2Sign = http_verb + '\n' + '' + '\n' + content_type + '\n' + time_stamp + '\n' + canonicalized_Resource;
     }
-    console.log('string2Sign:' + string2Sign);
+    //console.log('string2Sign:' + string2Sign);
     var signature = Ks3.b64_hmac_sha1(sk, string2Sign);
     //console.log('signature:' + signature);
     return signature;
@@ -540,7 +540,9 @@ Ks3.config = {
     // 分块上传的最小单位
     chunkSize:5*1024*1024,
     // 分块上传重试次数
-    retries:20
+    retries:20,
+    currentUploadId: '',
+    stopFlag: false  // for multipart upload
 }
 
 /**
@@ -557,6 +559,7 @@ Ks3.config = {
  *	   maker: '',         //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回结果，将从给定的 marker 开始返回列表。如果相应内容中IsTruncated为true，则可以使用返回的Contents中的最后一个key作为下次list的marker参数
  *	   'max-keys': 0,  //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的结果在1000条以后，你可以设定 marker 的值来调整起始位置。
  *	   prefix: '',    //限定响应结果列表使用的前缀
+ *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  */
 Ks3.listObject = function(params, cb) {
@@ -589,6 +592,8 @@ Ks3.listObject = function(params, cb) {
     };
     //在金山云存储控制台(ks3.ksyun.com)中的”空间设置"页面需要设置对应空间(bucket)的CORS配置，允许请求来源(Allow Origin: * )和请求头(Allow Header: * )的GET请求,否则浏览器会报跨域错误
     xhr.open('GET', url, true);
+    var signature = params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, '', 'GET', '' ,'', '');
+    xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
     xhr.send(null);
 }
 
@@ -599,6 +604,7 @@ Ks3.listObject = function(params, cb) {
  *      Bucket: '' not required, bucket name
  *      Key   : ''   Required ,   object key
  *      region : ''   not required  bucket所在region
+ *      Signature: ''  not required, 请求签名,从服务端获取
  * }
  * @param cb  : callback function
  */
@@ -610,7 +616,7 @@ Ks3.delObject = function(params, cb) {
         Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
     }
     var url = Ks3.config.protocol + '://' + Ks3.config.baseUrl + '/' + bucketName + '/' + key;
-    var signature = Ks3.generateToken(Ks3.config.SK, bucketName, key, 'DELETE', '' ,'', '');
+    var signature = params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, key, 'DELETE', '' ,'', '');
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -663,7 +669,7 @@ Ks3.headObject = function(params, cb) {
     }
     var url = Ks3.config.protocol + '://' + Ks3.config.baseUrl + '/' + bucketName + '/' + key;
     var type = 'HEAD';
-    var signature = Ks3.generateToken(Ks3.config.SK, bucketName, key, type, '' ,'', '');
+    var signature = params.Signature ||Ks3.generateToken(Ks3.config.SK, bucketName, key, type, '' ,'', '');
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -688,6 +694,7 @@ Ks3.headObject = function(params, cb) {
  *    Key: ''    Required   object key
  *    region : '' not required  bucket所在region
  *    range : ''  not required  for range request
+ *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  */
 Ks3.getObject = function(params, cb) {
@@ -706,7 +713,7 @@ Ks3.getObject = function(params, cb) {
     var range = params.range || '';
     var url = Ks3.config.protocol + '://' + Ks3.config.baseUrl + '/' + bucketName + '/' + key;
     var type = 'GET';
-    var signature = Ks3.generateToken(Ks3.config.SK, bucketName, key, type, '' ,'', '');
+    var signature = params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, key, type, '' ,'', '');
 
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
@@ -752,8 +759,6 @@ Ks3.download = function(params, cb) {
         alert('require the object Key');
     }
 
-    var ak = Ks3.config.AK;
-    var sk = Ks3.config.SK;
     var TEMP_SPACE = 1024 * 1024 * 1024 ; // 1GB
 
 
@@ -949,6 +954,7 @@ Ks3.download = function(params, cb) {
  *    region : '' not required  bucket所在region
  *    ContentType: ''  not required  content type of object key
  *    ACL: ''   not required   private | public-read
+ *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  */
 Ks3.multitpart_upload_init = function(params, cb) {
@@ -983,9 +989,9 @@ Ks3.multitpart_upload_init = function(params, cb) {
     if (acl == 'private' || acl == 'public-read') {
         var attr_Acl = 'x-' + Ks3.config.prefix + '-acl';
         xhr.setRequestHeader(attr_Acl, acl);
-        var signature = Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,{'x-kss-acl':acl}, '');
+        var signature =  params.Signature ||Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,{'x-kss-acl':acl}, '');
     }else{
-        var signature = Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,'', '');
+        var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,'', '');
     }
 
 
@@ -1018,11 +1024,11 @@ Ks3.multitpart_upload_init = function(params, cb) {
  *    PartNumber: ''  Required   分块的序号
  *    UploadId: ''   Required    初始化分块上传时获取的上传id
  *    body:  表示上传内容的blob对象
+ *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  */
 Ks3.upload_part = function(params, cb){
-    var ak = Ks3.config.AK || '';
-    var sk = Ks3.config.SK || '';
+
     var bucketName = params.Bucket || Ks3.config.bucket || '';
     var Key = Ks3.encodeKey(params.Key) || null;
     var contentType = params.ContentType || '';
@@ -1043,7 +1049,7 @@ Ks3.upload_part = function(params, cb){
     resource = resource.replace(/\/\//g, "/%2F");
     var url = Ks3.config.protocol + '://'  + Ks3.config.baseUrl + '/' + bucketName + '/' + resource;
     var type = 'PUT';
-    var signature = Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,'', '');
+    var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,'', '');
 
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
@@ -1067,7 +1073,6 @@ Ks3.upload_part = function(params, cb){
         //xhr.setRequestHeader('Content-Length', contentLength);
         xhr.send(body);
     }
-
 }
 
 /**
@@ -1078,12 +1083,12 @@ Ks3.upload_part = function(params, cb){
  *    Key: ''    Required   object key
  *    UploadId: ''   Required    初始化分块上传时获取的上传id
  *    body: ''  Required   描述的分块列表的xml文档
+ *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  * @param cb
  */
 Ks3.upload_complete = function(params,cb){
-    var ak = Ks3.config.AK || '';
-    var sk = Ks3.config.SK || '';
+
     var bucketName = params.Bucket || Ks3.config.bucket || '';
     var key = Ks3.encodeKey(params.Key) || null;
     var uploadId = params.UploadId || '';
@@ -1103,7 +1108,7 @@ Ks3.upload_complete = function(params,cb){
 
     var url = Ks3.config.protocol + '://'  + Ks3.config.baseUrl + '/' + bucketName + '/' + resource;
     var type = 'POST';
-    var signature = Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType,'', '');
+    var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType,'', '');
 
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
@@ -1125,6 +1130,61 @@ Ks3.upload_complete = function(params,cb){
     }
 }
 
+
+/**
+ * 取消分块上传
+ * @param params
+ * {
+ *    Bucket: '' not required, bucket name
+ *    Key: ''    Required   object key
+ *    UploadId: ''   Required    初始化分块上传时获取的上传id,
+ *    Signature: ''  not required, 请求签名,从服务端获取
+ * }
+ * @param cb
+ */
+Ks3.abort_multipart_upload = function(params, cb) {
+
+    var bucketName = params.Bucket || Ks3.config.bucket || '';
+    var key = Ks3.encodeKey(params.Key) || null;
+    var uploadId = params.UploadId || '';
+
+    if (!bucketName || !key) {
+        throw new Error('require the bucketName and object key');
+    }
+
+    if (!uploadId) {
+        throw new Error('require the uploadId');
+    }
+
+    var body = params.body || '';
+    var resource =  key + '?uploadId='+uploadId;
+    resource = resource.replace(/\/\//g, "/%2F");
+
+    var url = Ks3.config.protocol + '://'  + Ks3.config.baseUrl + '/' + bucketName + '/' + resource;
+    var type = 'DELETE';
+    var signature = params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, '','', '');
+
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            var res = Ks3.xmlToJson(xhr.responseXML);
+            if(xhr.status == 204 ){
+                cb(null, res);
+            }else {
+                console.log('status: ' + xhr.status);
+                cb({"msg":"request failed","status": xhr.status}, res);
+            }
+        }
+    };
+
+    xhr.open(type, url, true);
+    xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
+    if(body) {
+        xhr.send(body);
+    }
+}
+
+
 /**
  *
  * @param params
@@ -1132,12 +1192,12 @@ Ks3.upload_complete = function(params,cb){
  *    Bucket: '' not required, bucket name
  *    Key: ''    Required   object key
  *    UploadId: ''   Required    初始化分块上传时获取的上传id
+ *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  * @param cb
  */
 Ks3.upload_list_part = function(params,cb){
-    var ak = Ks3.config.AK || '';
-    var sk = Ks3.config.SK || '';
+
     var bucketName = params.Bucket || Ks3.config.bucket || '';
     var key = Ks3.encodeKey(params.Key) || null;
     var uploadId = params.UploadId || '';
@@ -1155,7 +1215,7 @@ Ks3.upload_list_part = function(params,cb){
 
     var url = Ks3.config.protocol + '://'  + Ks3.config.baseUrl + '/' + bucketName + '/' + resource;
     var type = 'GET';
-    var signature = Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, '','', '');
+    var signature = params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, '','', '');
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -1175,250 +1235,7 @@ Ks3.upload_list_part = function(params,cb){
 }
 
 
-
-
-/**
- * 上传文件
- * 根据文件大小,进行简单上传和分块上传
- * @param params
- * {
- *    Bucket: '' not required, bucket name
- *    Key: ''    Required   object key
- *    region : '' not required  bucket所在region
- *    ContentType: ''  not required  content type of object key
- *    ACL: ''   not required   private | public-read
- * }
- * @param cb
- */
-
-Ks3.multipartUpload = function(params, cb) {
-    /**
-     * 计算用于记录上传任务进度的key
-     * @param name
-     * @param lastModified
-     * @param bucket
-     * @param key
-     */
-    function getProgressKey(name, lastModified, bucket, key) {
-        var result = name + "-" + lastModified + "-" + bucket + "-" + key;
-        return result;
-    }
-    var config;
-    /**
-     * 把配置信息写到配置文件里,作为缓存
-     */
-    function configInit(file, cb) {
-        var fileSize = file.size;
-        var count = parseInt(fileSize / Ks3.config.chunkSize) + ((fileSize % Ks3.config.chunkSize == 0 ? 0: 1));
-
-        if (count == 0) {
-            cb({
-                msg: 'The file is empty.'
-            })
-        } else {
-            config = {
-                name: file.name,
-                size: fileSize,
-                chunkSize: Ks3.config.chunkSize,
-                count:count,
-                index: 1,
-                etags:{},
-                retries: 0
-            }
-            localStorage.setItem(progressKey, JSON.stringify(config));
-            if(cb) {
-                cb(null);
-            }
-        }
-    }
-
-    /**
-     * 获取指定的文件部分内容
-     */
-    function getFileContent(file, chunkSize, start, cb) {
-        var start = start;
-        var bufferSize = file.size;
-        var index = start / chunkSize;
-        console.log('正在读取下一个块的文件内容 index:' + index);
-        if (start + chunkSize > bufferSize) {
-            chunkSize = bufferSize - start;
-        }
-        console.log('分块大小:', chunkSize);
-
-        if(file.slice) {
-            var blob = file.slice(start, start + Ks3.config.chunkSize);
-        }else if(file.webkitSlice) {
-            var blob = file.webkitSlice(start, start + Ks3.config.chunkSize);
-        }else if(file.mozSlice) {
-            var blob = file.mozSlice(start, start + Ks3.config.chunkSize);
-        }else{
-            throw new Error("blob API doesn't work!");
-        }
-
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            cb(e.target.result);
-        };
-        reader.readAsArrayBuffer(blob);
-    }
-
-
-    var ak = Ks3.config.AK || '';
-    var sk = Ks3.config.SK || '';
-    var bucketName = params.Bucket || Ks3.config.bucket || '';
-    var key = params.Key || params.File.name;
-    key = Ks3.encodeKey(key);
-    var region = params.region || Ks3.config.region;
-    if (region ) {
-        Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
-    }
-    var file = params.File;
-    var progressKey = getProgressKey(file.name, file.lastModified, bucketName, key);
-    console.log(progressKey);
-
-    // 会根据文件大小,进行简单上传和分块上传
-    var contentType = params.ContentType || '';
-
-    var progressBar = document.getElementById("multipartUploadProgressBar");
-    // 分块上传
-    async.auto({
-            /**
-             * 初始化配置文件,如果没有就新建一个
-             */
-            init: function(callback) {
-                if ( !localStorage[progressKey]) {
-                    configInit(file, function(err) {
-                        callback(err);
-                    })
-                } else {
-                    callback(null);
-                }
-
-            },
-            show: ['init', function(callback) {
-                console.log('  开始上传文件: ' + progressKey)
-                config = JSON.parse(localStorage.getItem(progressKey));
-
-                progressBar.max = config['count'];
-                progressBar.value = config['index'];
-                callback(null);
-            }],
-            /**
-             * 获取uploadId,如果有就直接读取,没有就从服务器获取一个
-             */
-            getUploadId: ['init', function(callback) {
-                config = JSON.parse(localStorage.getItem(progressKey));
-                var uploadId = config['uploadId'];
-
-                if ( !! uploadId) {
-                    callback(null, uploadId)
-                } else {
-                    Ks3.multitpart_upload_init(params, function(err, uploadId) {
-                        config['uploadId'] = uploadId;
-                        localStorage.setItem(progressKey, JSON.stringify(config));
-                        callback(null, uploadId)
-                    });
-                }
-            }],
-            /**
-             * 对文件进行上传
-             * 上传后要把信息写到本地存储配置文件中
-             * 如果都上传完了,就把相关本地存储信息删除
-             * 并通知服务器,合并分块文件
-             */
-            upload: ['getUploadId', function(callback, result) {
-                var uploadId = result.getUploadId;
-                config = JSON.parse(localStorage.getItem(progressKey));
-                var count = config['count'];
-                var index = config['index'];
-                var chunkSize = config['chunkSize'];
-                var currentRetries = config['retries'];
-
-                // 在报错的时候重试
-                function retry(err) {
-                    console.log('upload ERROR:', err);
-                    if (currentRetries > Ks3.config.retries) {
-                        throw err
-                    } else {
-                        currentRetries = currentRetries + 1;
-                        config['retries'] = currentRetries;
-                        localStorage.setItem(progressKey, JSON.stringify(config));
-                        console.log('第 ' + currentRetries + ' 次重试');
-                        up();
-                    }
-                }
-                // 真正往服务端传递数据
-                function up() {
-                    console.log('正在上传 ', 'index: ' + index);
-                    var start = (index - 1) * chunkSize;
-                    // 判断是否已经全部都传完了
-                    if (index <= count) {
-                        getFileContent(file, chunkSize, start, function(body) {
-                            delete params.File;
-                            params.UploadId = uploadId;
-                            params.PartNumber = index;
-                            params.body = body;
-                            params.type = contentType;
-                            console.log('正在上传第 ', index, ' 块,总共: ', + count + ' 块');
-
-                            try {
-                                Ks3.upload_part(params, function(err, partNumber, etag) {
-                                    if (err) {
-                                        retry(err);
-                                    } else {
-                                        config['index'] = index;
-                                        progressBar.value = config['index'];
-                                        config['etags'][index] = etag;
-                                        localStorage.setItem(progressKey, JSON.stringify(config));
-                                        index = index + 1;
-                                        up();
-                                    }
-                                });
-                            } catch(e) {
-                                retry(e);
-                            }
-                        })
-                    } else {
-                        console.log('发送合并请求');
-                        delete params.File;
-                        params.UploadId = uploadId;
-                        params.body = generateCompleteXML(progressKey);
-
-                        Ks3.upload_complete(params, function(err, res) {
-                            if (err) throw err;
-                            callback(err, res);
-                        })
-                    }
-
-                    /**
-                     * 生成合并分块上传使用的xml
-                     */
-                    function generateCompleteXML(progressKey) {
-                        var content = JSON.parse(localStorage.getItem(progressKey));
-                        var index = content.index;
-                        var str = '';
-                        if (index > 0) {
-                            str = '<CompleteMultipartUpload>';
-                            for (var i = 1; i <= index; i++) {
-                                str += '<Part><PartNumber>' + i + '</PartNumber><ETag>' + content.etags[i] + '</ETag></Part>'
-                            }
-                            str += '</CompleteMultipartUpload>';
-                        }
-                        return str;
-                    }
-                };
-                up();
-            }]
-        },
-        function(err, results) {
-            if (err) throw err;
-            //删除配置
-            localStorage.removeItem(progressKey);
-            if (cb) {
-                cb(err, results);
-            }
-        });
-
-
-
+String.prototype.endWith=function(str){
+    var reg=new RegExp(str+"$");
+    return reg.test(this);
 }

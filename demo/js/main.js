@@ -370,6 +370,7 @@
     /**
      * 上传文件（支持断点续传）
      */
+    var fileToBeUpload; //被上传的文件的文件名
     document.getElementById('uploadBigFile').onclick = function() {
         //Ks3.multitpart_upload_init({
         //    Bucket: 'sanrui',
@@ -387,17 +388,17 @@
          * 文件名，最后修改时间，bucket和object key都没变化的情况，续传
          */
         var file = document.getElementById('bigFile').files[0];
-
-        Ks3.multipartUpload({
-            Bucket: 'sanrui',
-            Key:'jssdk/book2.pdf',
+        fileToBeUpload = file.name;
+        multipartUpload({
+            Bucket: bucketName,
+            Key: fileToBeUpload,
             region: 'HANGZHOU',
             ACL: 'public-read',
-            ContentType : 'application/pdf',
+            ContentType : 'vido/mp4',
             File: file
         }, function(err, res){
             if(err) {
-                console.error(err);
+                console.error(JSON.stringify(err));
             }else{
                 console.log('res: ' + JSON.stringify(res));
             }
@@ -405,6 +406,296 @@
 
     }
 
+    document.getElementById('suspendMultipartUpload').onclick = function() {
+        Ks3.config.stopFlag = true;
+    };
+
+    document.getElementById('cancelMultipartUpload').onclick = function() {
+        //前端暂停
+        Ks3.config.stopFlag = true;
+        //通知ks3取消上传
+        if(Ks3.config.currentUploadId) {
+            Ks3.abort_multipart_upload({
+                Bucket: bucketName,
+                Key:fileToBeUpload,
+                UploadId: Ks3.config.currentUploadId
+            },function(err,res) {
+                if(err) {
+                    console.error(err);
+                }else{
+                    console.log('res: ' + JSON.stringify(res));
+
+                    //清理前端缓存与重置界面进度条
+                    var len = localStorage.length;
+                    for(var i=0; i< len; i++) {
+                        var itemKey = localStorage.key(i);
+                        if(itemKey.endWith(bucketName + '-' + fileToBeUpload)) {
+                            localStorage.removeItem(itemKey);
+                        }
+                    }
+                    var progressBar = document.getElementById("multipartUploadProgressBar");
+                    progressBar.value = 0;
+                }
+            });
+        }
+    };
+
 })();
 
 
+/**
+ * 上传文件
+ * 根据文件大小,进行简单上传和分块上传
+ * @param params
+ * {
+ *    Bucket: '' not required, bucket name
+ *    Key: ''    Required   object key
+ *    region : '' not required  bucket所在region
+ *    ContentType: ''  not required  content type of object key
+ *    ACL: ''   not required   private | public-read
+ *    Signature: ''  not required, 请求签名,从服务端获取
+ * }
+ * @param cb
+ */
+
+function multipartUpload (params, cb) {
+    /**
+     * 计算用于记录上传任务进度的key
+     * @param name
+     * @param lastModified
+     * @param bucket
+     * @param key
+     */
+    function getProgressKey(name, lastModified, bucket, key) {
+        var result = name + "-" + lastModified + "-" + bucket + "-" + key;
+        return result;
+    }
+    var config;
+    /**
+     * 把配置信息写到配置文件里,作为缓存
+     */
+    function configInit(file, cb) {
+        var fileSize = file.size;
+        var count = parseInt(fileSize / Ks3.config.chunkSize) + ((fileSize % Ks3.config.chunkSize == 0 ? 0: 1));
+
+        if (count == 0) {
+            cb({
+                msg: 'The file is empty.'
+            })
+        } else {
+            config = {
+                name: file.name,
+                size: fileSize,
+                chunkSize: Ks3.config.chunkSize,
+                count:count,
+                index: 1,
+                etags:{},
+                retries: 0
+            }
+            localStorage.setItem(progressKey, JSON.stringify(config));
+            if(cb) {
+                cb(null);
+            }
+        }
+    }
+
+    /**
+     * 获取指定的文件部分内容
+     */
+    function getFileContent(file, chunkSize, start, cb) {
+        var start = start;
+        var bufferSize = file.size;
+        var index = start / chunkSize;
+        console.log('正在读取下一个块的文件内容 index:' + index);
+        if (start + chunkSize > bufferSize) {
+            chunkSize = bufferSize - start;
+        }
+        console.log('分块大小:', chunkSize);
+
+        if(file.slice) {
+            var blob = file.slice(start, start + Ks3.config.chunkSize);
+        }else if(file.webkitSlice) {
+            var blob = file.webkitSlice(start, start + Ks3.config.chunkSize);
+        }else if(file.mozSlice) {
+            var blob = file.mozSlice(start, start + Ks3.config.chunkSize);
+        }else{
+            throw new Error("blob API doesn't work!");
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            cb(e.target.result);
+        };
+        reader.readAsArrayBuffer(blob);
+    }
+
+
+    var bucketName = params.Bucket || Ks3.config.bucket || '';
+    var key = params.Key || params.File.name;
+    key = Ks3.encodeKey(key);
+    var region = params.region || Ks3.config.region;
+    if (region ) {
+        Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
+    }
+    var file = params.File;
+    var progressKey = getProgressKey(file.name, file.lastModified, bucketName, key);
+    console.log(progressKey);
+
+    // 会根据文件大小,进行简单上传和分块上传
+    var contentType = params.ContentType || '';
+
+    var progressBar = document.getElementById("multipartUploadProgressBar");
+    // 分块上传
+    async.auto({
+            /**
+             * 初始化配置文件,如果没有就新建一个
+             */
+            init: function(callback) {
+                //重置暂停标识
+                Ks3.config.stopFlag = false;
+
+                if ( !localStorage[progressKey]) {
+                    configInit(file, function(err) {
+                        callback(err);
+                    })
+                } else {
+                    callback(null);
+                }
+
+            },
+            show: ['init', function(callback) {
+                console.log('  开始上传文件: ' + progressKey)
+                config = JSON.parse(localStorage.getItem(progressKey));
+
+                progressBar.max = config['count'];
+                progressBar.value = config['index'];
+                callback(null);
+            }],
+            /**
+             * 获取uploadId,如果有就直接读取,没有就从服务器获取一个
+             */
+            getUploadId: ['init', function(callback) {
+                config = JSON.parse(localStorage.getItem(progressKey));
+                var uploadId = config['uploadId'];
+
+                if ( !! uploadId) {
+                    callback(null, uploadId);
+                } else {
+                    Ks3.multitpart_upload_init(params, function(err, uploadId) {
+                        config['uploadId'] = uploadId;
+                        localStorage.setItem(progressKey, JSON.stringify(config));
+                        callback(null, uploadId)
+                    });
+                }
+            }],
+            /**
+             * 对文件进行上传
+             * 上传后要把信息写到本地存储配置文件中
+             * 如果都上传完了,就把相关本地存储信息删除
+             * 并通知服务器,合并分块文件
+             */
+            upload: ['getUploadId', function(callback, result) {
+                var uploadId = result.getUploadId;
+                Ks3.config.currentUploadId = uploadId;
+
+                config = JSON.parse(localStorage.getItem(progressKey));
+                var count = config['count'];
+                var index = config['index'];
+                var chunkSize = config['chunkSize'];
+                var currentRetries = config['retries'];
+
+                // 在报错的时候重试
+                function retry(err) {
+                    console.log('upload ERROR:', err);
+                    if (currentRetries > Ks3.config.retries) {
+                        throw err
+                    } else {
+                        currentRetries = currentRetries + 1;
+                        config['retries'] = currentRetries;
+                        localStorage.setItem(progressKey, JSON.stringify(config));
+                        console.log('第 ' + currentRetries + ' 次重试');
+                        up();
+                    }
+                }
+                // 真正往服务端传递数据
+                function up() {
+                    //暂停
+                    if(Ks3.config.stopFlag) {
+                        callback({
+                            msg: "Suspended"
+                        });
+                    }
+
+                    console.log('正在上传 ', 'index: ' + index);
+                    var start = (index - 1) * chunkSize;
+                    // 判断是否已经全部都传完了
+                    if (index <= count) {
+                        getFileContent(file, chunkSize, start, function(body) {
+                            delete params.File;
+                            params.UploadId = uploadId;
+                            params.PartNumber = index;
+                            params.body = body;
+                            params.type = contentType;
+                            console.log('正在上传第 ', index, ' 块,总共: ', + count + ' 块');
+
+                            try {
+                                Ks3.upload_part(params, function(err, partNumber, etag) {
+                                    if (err) {
+                                        retry(err);
+                                    } else {
+                                        config['index'] = index;
+                                        progressBar.value = config['index'];
+                                        config['etags'][index] = etag;
+                                        localStorage.setItem(progressKey, JSON.stringify(config));
+                                        index = index + 1;
+                                        up();
+                                    }
+                                });
+                            } catch(e) {
+                                retry(e);
+                            }
+                        })
+                    } else {
+                        console.log('发送合并请求');
+                        delete params.File;
+                        params.UploadId = uploadId;
+                        params.body = generateCompleteXML(progressKey);
+
+                        Ks3.upload_complete(params, function(err, res) {
+                            if (err) throw err;
+                            callback(err, res);
+                        })
+                    }
+
+                    /**
+                     * 生成合并分块上传使用的xml
+                     */
+                    function generateCompleteXML(progressKey) {
+                        var content = JSON.parse(localStorage.getItem(progressKey));
+                        var index = content.index;
+                        var str = '';
+                        if (index > 0) {
+                            str = '<CompleteMultipartUpload>';
+                            for (var i = 1; i <= index; i++) {
+                                str += '<Part><PartNumber>' + i + '</PartNumber><ETag>' + content.etags[i] + '</ETag></Part>'
+                            }
+                            str += '</CompleteMultipartUpload>';
+                        }
+                        return str;
+                    }
+                };
+                up();
+            }]
+        },
+        function(err, results) {
+            if (err) throw err;
+            //删除配置
+            localStorage.removeItem(progressKey);
+            if (cb) {
+                cb(err, results);
+            }
+        });
+
+
+
+}
