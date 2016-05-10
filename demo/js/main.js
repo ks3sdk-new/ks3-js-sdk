@@ -189,7 +189,7 @@
      */
     document.getElementById('get-bucket').onclick = function() {
         Ks3.listObject({
-            'max-keys': 15
+            'max-keys': '15'
         },function(json) {
             document.getElementById('responsexml').innerHTML = JSON.stringify(json, null, 4);
         });
@@ -204,7 +204,7 @@
         Ks3.listObject(
             {
                 Bucket: bucketName,
-                'max-keys': 10
+                'max-keys': '10'
             },function(json) {
                 /**
                  * 以表格展示bucket中的object
