@@ -430,7 +430,7 @@
                     var len = localStorage.length;
                     for(var i=0; i< len; i++) {
                         var itemKey = localStorage.key(i);
-                        if(itemKey.endWith(bucketName + '-' + Ks3.encodeKey(fileToBeUpload))) {
+                        if(typeof itemKey  === 'string'  && itemKey.endWith(bucketName + '-' + Ks3.encodeKey(fileToBeUpload))) {
                             localStorage.removeItem(itemKey);
                         }
                     }

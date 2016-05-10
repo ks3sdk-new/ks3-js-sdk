@@ -579,6 +579,8 @@ Ks3.listObject = function(params, cb) {
     var url =  Ks3.config.protocol + '://' + Ks3.config.baseUrl + '/' + bucketName;  //元数据获取不要走cdn
     url = Ks3.addURLParam(url, listObjectParams);
 
+    xhr.overrideMimeType('text/xml'); //兼容火狐
+
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4) {
             if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
@@ -792,7 +794,7 @@ Ks3.multitpart_upload_init = function(params, cb) {
         var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,'', '');
     }
 
-
+    xhr.overrideMimeType('text/xml'); //兼容火狐
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
@@ -909,6 +911,7 @@ Ks3.upload_complete = function(params,cb){
     var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType,'', '');
 
     var xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('text/xml'); //兼容火狐
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
@@ -1013,6 +1016,7 @@ Ks3.upload_list_part = function(params,cb){
     var type = 'GET';
     var signature = params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, '','', '');
     var xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('text/xml'); //兼容火狐
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
@@ -1031,7 +1035,7 @@ Ks3.upload_list_part = function(params,cb){
 }
 
 
-String.prototype.endWith=function(str){
+String.prototype.endWith = function(str){
     var reg=new RegExp(str+"$");
     return reg.test(this);
 }
