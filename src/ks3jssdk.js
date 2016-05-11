@@ -156,7 +156,7 @@ Ks3.addURLParam = function(url, obj) {
 Ks3.xmlToJson = function (xml) {
     // Create the return object
     var obj = {};
-    if (xml.nodeType == 3) { // text
+    if (xml.nodeType == Node.TEXT_NODE) { // text
         obj = xml.nodeValue;
     }
 
