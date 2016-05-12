@@ -654,6 +654,7 @@ Ks3.encodeKey = function (key) {
  *    Bucket: '' not required, bucket name
  *    Key: ''    Required   object key
  *    region : '' not required  bucket所在region
+ *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  */
 Ks3.headObject = function(params, cb) {
