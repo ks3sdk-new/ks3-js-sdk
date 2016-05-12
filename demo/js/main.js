@@ -32,9 +32,16 @@
 
     Ks3.config.region = 'HANGZHOU'; //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'sanrui';  // TODO : 设置默认bucket name
+    var bucketName = "sanrui";   //TODO: 请替换为您需要上传文件的bucket名称
+
+    Ks3.config.AK = 'S1guCl0KF/qxO4CElPY/';
+    Ks3.config.SK = 'b7zBDxv9ohTPc0tgc8Hpp89i7I0FDnkyQY4mYY6I';
+    Ks3.config.region = 'BEIJING';
+    Ks3.config.bucket = 'gzz-beijing';
+    var bucketName = 'gzz-beijing';
+
 
     var filelistNode = document.getElementById('filelist');
-    var bucketName = "sanrui";   //TODO: 请替换为您需要上传文件的bucket名称
 
     /*
      *  如果bucket不是公开读写的，需要先鉴权，即提供policy和signature表单
@@ -386,10 +393,14 @@
          */
         var file = document.getElementById('bigFile').files[0];
         fileToBeUpload = file.name;
+
+        //设置分块大小
+        //Ks3.config.chunkSize = 3*1024*1024; //默认为 3 MB，增大分块会增加部分浏览器崩溃的风险
+
         multipartUpload({
             Bucket: bucketName,
             Key: fileToBeUpload,
-            region: 'HANGZHOU',
+            region: 'BEIJING',
             ACL: 'public-read',
             ContentType : 'video/mp4',
             File: file
@@ -430,7 +441,8 @@
                     var len = localStorage.length;
                     for(var i=0; i< len; i++) {
                         var itemKey = localStorage.key(i);
-                        if(typeof itemKey  === 'string'  && itemKey.endWith(bucketName + '-' + Ks3.encodeKey(fileToBeUpload))) {
+                        //自动创建一个临时String对象封装itemKey在IE下会导致内存泄露，故显示转换
+                        if(typeof itemKey  === 'string'  && (new String(itemKey)).endWith(bucketName + '-' + Ks3.encodeKey(fileToBeUpload))) {
                             localStorage.removeItem(itemKey);
                         }
                     }
@@ -460,77 +472,8 @@
  */
 
 function multipartUpload (params, cb) {
-    /**
-     * 计算用于记录上传任务进度的key
-     * @param name
-     * @param lastModified
-     * @param bucket
-     * @param key
-     */
-    function getProgressKey(name, lastModified, bucket, key) {
-        var result = name + "-" + lastModified + "-" + bucket + "-" + key;
-        return result;
-    }
+
     var config;
-    /**
-     * 把配置信息写到配置文件里,作为缓存
-     */
-    function configInit(file, cb) {
-        var fileSize = file.size;
-        var count = parseInt(fileSize / Ks3.config.chunkSize) + ((fileSize % Ks3.config.chunkSize == 0 ? 0: 1));
-
-        if (count == 0) {
-            cb({
-                msg: 'The file is empty.'
-            })
-        } else {
-            config = {
-                name: file.name,
-                size: fileSize,
-                chunkSize: Ks3.config.chunkSize,
-                count:count,
-                index: 1,
-                etags:{},
-                retries: 0
-            }
-            localStorage.setItem(progressKey, JSON.stringify(config));
-            if(cb) {
-                cb(null);
-            }
-        }
-    }
-
-    /**
-     * 获取指定的文件部分内容
-     */
-    function getFileContent(file, chunkSize, start, cb) {
-        var start = start;
-        var bufferSize = file.size;
-        var index = start / chunkSize;
-        console.log('正在读取下一个块的文件内容 index:' + index);
-        if (start + chunkSize > bufferSize) {
-            chunkSize = bufferSize - start;
-        }
-        console.log('分块大小:', chunkSize);
-
-        if(file.slice) {
-            var blob = file.slice(start, start + Ks3.config.chunkSize);
-        }else if(file.webkitSlice) {
-            var blob = file.webkitSlice(start, start + Ks3.config.chunkSize);
-        }else if(file.mozSlice) {
-            var blob = file.mozSlice(start, start + Ks3.config.chunkSize);
-        }else{
-            throw new Error("blob API doesn't work!");
-        }
-
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            cb(e.target.result);
-        };
-        reader.readAsArrayBuffer(blob);
-    }
-
-
     var bucketName = params.Bucket || Ks3.config.bucket || '';
     var key = params.Key || params.File.name;
     key = Ks3.encodeKey(key);
@@ -556,7 +499,7 @@ function multipartUpload (params, cb) {
                 Ks3.config.stopFlag = false;
 
                 if ( !localStorage[progressKey]) {
-                    configInit(file, function(err) {
+                    configInit(file, progressKey, function(err) {
                         callback(err);
                     })
                 } else {
@@ -666,25 +609,6 @@ function multipartUpload (params, cb) {
                             callback(err, res);
                         })
                     }
-
-
-
-                    /**
-                     * 生成合并分块上传使用的xml
-                     */
-                    function generateCompleteXML(progressKey) {
-                        var content = JSON.parse(localStorage.getItem(progressKey));
-                        var index = content.index;
-                        var str = '';
-                        if (index > 0) {
-                            str = '<CompleteMultipartUpload>';
-                            for (var i = 1; i <= index; i++) {
-                                str += '<Part><PartNumber>' + i + '</PartNumber><ETag>' + content.etags[i] + '</ETag></Part>'
-                            }
-                            str += '</CompleteMultipartUpload>';
-                        }
-                        return str;
-                    }
                 };
 
                 up();
@@ -703,6 +627,97 @@ function multipartUpload (params, cb) {
         });
 
 }
+
+/**
+ * 计算用于记录上传任务进度的key
+ * @param name
+ * @param lastModified
+ * @param bucket
+ * @param key
+ */
+function getProgressKey(name, lastModified, bucket, key) {
+    var result = name + "-" + lastModified + "-" + bucket + "-" + key;
+    return result;
+}
+
+/**
+ * 把配置信息写到localStorage里,作为缓存
+ * @param file 上传文件的句柄
+ * @param progressKey  文件上传进度缓存在localStorage中的标记key
+ * @param cb
+ */
+function configInit(file, progressKey, cb) {
+    var fileSize = file.size;
+    var count = parseInt(fileSize / Ks3.config.chunkSize) + ((fileSize % Ks3.config.chunkSize == 0 ? 0: 1));
+
+    if (count == 0) {
+        cb({
+            msg: 'The file is empty.'
+        })
+    } else {
+        config = {
+            name: file.name,
+            size: fileSize,
+            chunkSize: Ks3.config.chunkSize,
+            count:count,
+            index: 1,
+            etags:{},
+            retries: 0
+        }
+        localStorage.setItem(progressKey, JSON.stringify(config));
+        if(cb) {
+            cb(null);
+        }
+    }
+}
+
+/**
+ * 获取指定的文件部分内容
+ */
+function getFileContent(file, chunkSize, start, cb) {
+    var start = start;
+    var bufferSize = file.size;
+    var index = start / chunkSize;
+    console.log('正在读取下一个块的文件内容 index:' + index);
+    if (start + chunkSize > bufferSize) {
+        chunkSize = bufferSize - start;
+    }
+    console.log('分块大小:', chunkSize);
+
+    if(file.slice) {
+        var blob = file.slice(start, start + Ks3.config.chunkSize);
+    }else if(file.webkitSlice) {
+        var blob = file.webkitSlice(start, start + Ks3.config.chunkSize);
+    }else if(file.mozSlice) {
+        var blob = file.mozSlice(start, start + Ks3.config.chunkSize);
+    }else{
+        throw new Error("blob API doesn't work!");
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        cb(e.target.result);
+    };
+    reader.readAsArrayBuffer(blob);
+}
+
+/**
+ * 生成合并分块上传使用的xml
+ */
+function generateCompleteXML(progressKey) {
+    var content = JSON.parse(localStorage.getItem(progressKey));
+    var index = content.index;
+    var str = '';
+    if (index > 0) {
+        str = '<CompleteMultipartUpload>';
+        for (var i = 1; i <= index; i++) {
+            str += '<Part><PartNumber>' + i + '</PartNumber><ETag>' + content.etags[i] + '</ETag></Part>'
+        }
+        str += '</CompleteMultipartUpload>';
+    }
+    return str;
+}
+
 
 
 

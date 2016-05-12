@@ -538,7 +538,7 @@ Ks3.config = {
     bucket: '',
     prefix:'kss',
     // 分块上传的最小单位
-    chunkSize:5*1024*1024,
+    chunkSize:3*1024*1024,
     // 分块上传重试次数
     retries:20,
     currentUploadId: '',

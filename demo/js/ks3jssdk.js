@@ -156,7 +156,7 @@ Ks3.addURLParam = function(url, obj) {
 Ks3.xmlToJson = function (xml) {
     // Create the return object
     var obj = {};
-    if (xml.nodeType == 3) { // text
+    if (xml.nodeType == Node.TEXT_NODE) { // text
         obj = xml.nodeValue;
     }
 
@@ -538,7 +538,7 @@ Ks3.config = {
     bucket: '',
     prefix:'kss',
     // 分块上传的最小单位
-    chunkSize:5*1024*1024,
+    chunkSize:3*1024*1024,
     // 分块上传重试次数
     retries:20,
     currentUploadId: '',
