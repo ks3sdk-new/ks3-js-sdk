@@ -395,7 +395,7 @@
         fileToBeUpload = file.name;
 
         //设置分块大小
-        //Ks3.config.chunkSize = 3*1024*1024; //默认为 3 MB，增大分块会增加部分浏览器崩溃的风险
+        //Ks3.config.chunkSize = 6*1024*1024; //最小（默认）为5 MB，增大分块会增加部分浏览器崩溃的风险
 
         multipartUpload({
             Bucket: bucketName,
