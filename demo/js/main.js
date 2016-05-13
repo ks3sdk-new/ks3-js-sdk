@@ -17,8 +17,9 @@
      * @type {HTMLElement}
      */
 
-    Ks3.config.AK = 'HUd4AjUY8C4WBy7exNo1';  //TODO： 请替换为您的AK
+    Ks3.config.AK = 'S1guCl0KF/qxO4CElPY/';  //TODO： 请替换为您的AK
     Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
+    Ks3.config.SK = 'b7zBDxv9ohTPc0tgc8Hpp89i7I0FDnkyQY4mYY6I';
 
     Ks3.config.region = 'BEIJING';  //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'gzz-beijing'; // TODO : 设置默认bucket name
@@ -123,7 +124,9 @@
                                 itemNode.appendChild(waterMarkImgLink);
                             },1000);
 
-                        }else{
+                        }else if(xhr.status === 413 || xhr.status === 415){
+                                alert(Ks3.xmlToJson(xhr.responseXML)['errMsg']);
+                        } else{
                             alert('Request was unsuccessful: ' + xhr.status);
                         }
                     }
@@ -386,8 +389,10 @@
             Key: fileToBeUpload,
             region: 'BEIJING',
             ACL: 'public-read',
-            ContentType : 'video/mp4',
-            File: file
+            //ContentType : 'video/mp4',
+            File: file,
+            TotalSize: file.size,
+            Signature: ''
         }, function(err, res){
             if(err) {
                 if(err.msg != 'stop') {
@@ -450,6 +455,8 @@
  *    region : '' not required  bucket所在region
  *    ContentType: ''  not required  content type of object key
  *    ACL: ''   not required   private | public-read
+ *    File: object  required, 需要上传的文件
+ *    TotalSize: not required, 需要限定文件总大小时使用
  *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  * @param cb
@@ -466,6 +473,7 @@ function multipartUpload (params, cb) {
         Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
     }
     var file = params.File;
+    var totalSize = file.size; //文件总大小
     var progressKey = getProgressKey(file.name, file.lastModified, bucketName, key);
     console.log(progressKey);
 

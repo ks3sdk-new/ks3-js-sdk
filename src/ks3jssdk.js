@@ -755,12 +755,12 @@ Ks3.getObject = function(params, cb) {
  *    region : '' not required  bucket所在region
  *    ContentType: ''  not required  content type of object key
  *    ACL: ''   not required   private | public-read
+ *    TotalSize: '' not required, 分块上传文件总大小
  *    Signature: ''  not required, 请求签名,从服务端获取
  * }
  */
 Ks3.multitpart_upload_init = function(params, cb) {
-    var ak = Ks3.config.AK || '';
-    var sk = Ks3.config.SK || '';
+
     var bucketName = params.Bucket || Ks3.config.bucket || '';
     var Key = Ks3.encodeKey(params.Key) || null;
 
@@ -786,22 +786,29 @@ Ks3.multitpart_upload_init = function(params, cb) {
     var xhr = new XMLHttpRequest();
     xhr.open(type, url, true);
 
+    var headers = {};
     var acl = params.ACL;
     if (acl == 'private' || acl == 'public-read') {
         var attr_Acl = 'x-' + Ks3.config.prefix + '-acl';
         xhr.setRequestHeader(attr_Acl, acl);
-        var signature =  params.Signature ||Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,{'x-kss-acl':acl}, '');
-    }else{
-        var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,'', '');
+        headers[attr_Acl] = acl;
     }
-
+    var totalSize = params.TotalSize;
+    if(totalSize) {
+       var attr_content_length = 'x-' + Ks3.config.prefix + '-meta-' + 'content-length';
+        xhr.setRequestHeader(attr_content_length, totalSize);
+        headers[attr_content_length] = totalSize;
+    }
+    var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,headers, '');
     xhr.overrideMimeType('text/xml'); //兼容火狐
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
                 var uploadId = Ks3.xmlToJson(xhr.responseXML)['InitiateMultipartUploadResult']['UploadId'];
                 cb(null, uploadId);
-            }else {
+            }else if(xhr.status === 413 || xhr.status === 415) {
+                cb({"msg": Ks3.xmlToJson(xhr.responseXML)['errMsg']},null);
+            } else {
                 console.log('status: ' + xhr.status);
                 cb({"msg":"request failed"}, null);
             }
