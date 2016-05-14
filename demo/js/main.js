@@ -174,7 +174,14 @@
 
     var pluploadOptions = {
         browse_button: 'browse', //触发对话框的DOM元素自身或者其ID
-        drop_element: document.body //指定了使用拖拽方式来选择上传文件时的拖拽区域，即可以把文件拖拽到这个区域的方式来选择文件。该参数的值可以为一个DOM元素的id,也可是DOM元素本身，还可以是一个包括多个DOM元素的数组。如果不设置该参数则拖拽上传功能不可用。目前只有html5上传方式才支持拖拽上传。
+        drop_element: document.body, //指定了使用拖拽方式来选择上传文件时的拖拽区域，即可以把文件拖拽到这个区域的方式来选择文件。该参数的值可以为一个DOM元素的id,也可是DOM元素本身，还可以是一个包括多个DOM元素的数组。如果不设置该参数则拖拽上传功能不可用。目前只有html5上传方式才支持拖拽上传。
+        filters: {
+            mime_types : [ //只允许上传图片和zip文件
+                { title : "Video files", extensions : "mp4,mov,qt,ts,rmvb,rm,avi,flv,mkv,wmv,mpg,mpeg,m2v,m4v,3gp,3g2,webm,vob,ogv,ogg" }
+            ],
+            max_file_size : '2gb', //最大只能上传2GB的文件
+            prevent_duplicates : true //不允许选取重复文件
+        }
     }
 
     var tempUpload = new ks3FileUploader(ks3Options, pluploadOptions);
