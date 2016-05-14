@@ -28,7 +28,6 @@
     //测试环境39
     Ks3.config.AK = 'HUd4AjUY8C4GaZQnzJol';  //TODO： 请替换为您的AK
     Ks3.config.SK = 'JWJrOcSOb6HQqYeFjPWOlKEcQ1Y8tOx8JHFIXupT'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
-
     Ks3.config.region = 'HANGZHOU';  //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'gzz-video'; // TODO : 设置默认bucket name
     var bucketName = 'gzz-video';     //TODO: 请替换为您需要上传文件的bucket名称
@@ -388,7 +387,7 @@
         multipartUpload({
             Bucket: bucketName,
             Key: fileToBeUpload,
-            region: 'BEIJING',
+            //region: 'BEIJING',
             ACL: 'public-read',
             //ContentType : 'video/mp4',
             File: file,

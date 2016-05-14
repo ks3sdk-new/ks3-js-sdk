@@ -149,7 +149,7 @@ Ks3.addURLParam = function(url, obj) {
 }
 
 /**
- * Changes XML to JSON  （xml 不带属性）
+ * Changes XML DOM to JSON  （xml 不带属性）
  * @param xml
  * @returns {{}}  js对象
  */
@@ -1044,13 +1044,21 @@ Ks3.upload_list_part = function(params,cb){
     xhr.send(null);
 }
 
-
+/**
+ * 判断字符串是否以给定的字符串结尾
+ * @param str
+ * @returns {boolean}
+ */
 String.prototype.endWith = function(str){
     var reg=new RegExp(str+"$");
     return reg.test(this);
 }
 
-
+/**
+ * change string to XML DOM
+ * @param oString
+ * @returns {*}
+ */
 Ks3.parseStringToXML = function(oString) {
     if (document.implementation && document.implementation.createDocument) {
         var xmlDoc = new DOMParser().parseFromString(oString, 'text/xml');
