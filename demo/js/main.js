@@ -19,11 +19,19 @@
 
     Ks3.config.AK = 'S1guCl0KF/qxO4CElPY/';  //TODO： 请替换为您的AK
     Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
-    Ks3.config.SK = 'b7zBDxv9ohTPc0tgc8Hpp89i7I0FDnkyQY4mYY6I';
 
     Ks3.config.region = 'BEIJING';  //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'gzz-beijing'; // TODO : 设置默认bucket name
     var bucketName = 'gzz-beijing';     //TODO: 请替换为您需要上传文件的bucket名称
+
+
+    //测试环境39
+    Ks3.config.AK = 'HUd4AjUY8C4GaZQnzJol';  //TODO： 请替换为您的AK
+    Ks3.config.SK = 'JWJrOcSOb6HQqYeFjPWOlKEcQ1Y8tOx8JHFIXupT'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
+
+    Ks3.config.region = 'HANGZHOU';  //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
+    Ks3.config.bucket = 'gzz-video'; // TODO : 设置默认bucket name
+    var bucketName = 'gzz-video';     //TODO: 请替换为您需要上传文件的bucket名称
 
 
     var filelistNode = document.getElementById('filelist');
@@ -124,8 +132,6 @@
                                 itemNode.appendChild(waterMarkImgLink);
                             },1000);
 
-                        }else if(xhr.status === 413 || xhr.status === 415){
-                                alert(Ks3.xmlToJson(xhr.responseXML)['errMsg']);
                         } else{
                             alert('Request was unsuccessful: ' + xhr.status);
                         }
@@ -158,7 +164,12 @@
             //obj.name = newObjectKey;
         },
         onErrorCallBack: function(uploader, errObject){
-            alert(errObject.code + " : Error happened in uploading " + errObject.file.name + " ( " + errObject.message + " )");
+            if(errObject.status === 413 || errObject.status === 415){
+                var responseXML = Ks3.parseStringToXML(errObject.response );
+                alert(Ks3.xmlToJson(responseXML)['Error']['Message']);
+            }else{
+                alert(errObject.code + " : Error happened in uploading " + errObject.file.name + " ( " + errObject.message + " )");
+            }
         }
     };
 
@@ -289,43 +300,33 @@
     };
 
     /**
-     *  PUT Object 上传触发处理示例2（不依赖与后端）
+     *  PUT Object 上传文件（不依赖与后端）
      *  前端计算signature，put请求直接到ks3 API
      *  注意：容易泄露SK, 建议只用于内部项目
      *
      */
 
     document.getElementById('utp2').onclick = function() {
-        var imgFile = document.getElementById('imgFile2').files[0]; //获取文件对象
-        var objKey = encodeURIComponent(imgFile.name);
-        var contentType = imgFile.type;
-        //var url = 'http://'+ bucketName + '.kss.ksyun.com/' + objKey;
+        var file = document.getElementById('imgFile2').files[0]; //获取文件对象
+        var objKey = encodeURIComponent(file.name);
+        var contentType = file.type;
 
         var url = ks3UploadUrl + bucketName + '/' + objKey;
         var kssHeaders = {
-            'kss-async-process': 'tag=imgWaterMark&type=2&dissolve=65&gravity=NorthEast&text=6YeR5bGx5LqR&font=5b6u6L2v6ZuF6buR&fill=I2JmMTcxNw==&fontsize=500&dy=10&dx=20|tag=saveas&bucket=' + bucketName + '&object=imgWaterMark-' + objKey,
-            'kss-notifyurl': 'http://10.4.2.38:19090/',
-            'x-kss-storage-class' : 'STANDARD'   // STANDARD | STANDARD_IA 即标准存储和低频访问存储（主要用于备份）
+            'Content-length': file.size
         };
         var signature = Ks3.generateToken(Ks3.config.SK, bucketName, objKey, 'PUT', contentType ,kssHeaders, '');
         var xhr = new XMLHttpRequest();
+        xhr.overrideMimeType('text/xml');
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
                 if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
-                    alert("上传触发处理成功");
-                    var waterMarkImg = document.getElementById('display-adp-result2').firstChild;
-                    //10分钟后的时间戳, s
-                    var  timeStamp = getExpires(10 * 60);
-
-                    //根据Expires过期时间戳计算外链signature
-                    var expiresSignature = Ks3.generateToken(Ks3.config.SK, bucketName, 'imgWaterMark-' + objKey, 'GET', '' ,'', timeStamp);
-                    setTimeout(function() {
-                        //异步任务，等两秒
-                        waterMarkImg.src = ks3UploadUrl + bucketName + '/imgWaterMark-' + objKey + '?KSSAccessKeyId=' +  encodeURIComponent(Ks3.config.AK) + '&Expires=' + timeStamp + '&Signature=' + encodeURIComponent(expiresSignature);
-                    },2000);
-
-                }else{
+                    alert("put上传成功");
+                }else if(xhr.status === 413 || xhr.status === 415) {
+                    alert(Ks3.xmlToJson(xhr.responseXML)['Error']['Message']);
+                } else{
                     alert('Request was unsuccessful: ' + xhr.status);
+
                 }
             }
         };
@@ -341,10 +342,10 @@
         xhr.open("put", url, true);
 
         xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
-        xhr.setRequestHeader('kss-async-process', kssHeaders['kss-async-process']);
-        xhr.setRequestHeader('kss-notifyurl',kssHeaders['kss-notifyurl']); //替换成您接收异步处理任务完成通知的url地址
-        xhr.setRequestHeader('x-kss-storage-class', 'STANDARD');
-        xhr.send(imgFile);
+        //xhr.setRequestHeader('kss-async-process', kssHeaders['kss-async-process']);
+        //xhr.setRequestHeader('kss-notifyurl',kssHeaders['kss-notifyurl']); //替换成您接收异步处理任务完成通知的url地址
+        //xhr.setRequestHeader('x-kss-storage-class', 'STANDARD');
+        xhr.send(file);
     };
 
 
@@ -397,6 +398,7 @@
             if(err) {
                 if(err.msg != 'stop') {
                     console.error(err);
+                    alert(err.msg);
                 }else{
                     console.log(err);
                 }
@@ -518,9 +520,13 @@ function multipartUpload (params, cb) {
                     callback(null, uploadId);
                 } else {
                     Ks3.multitpart_upload_init(params, function(err, uploadId) {
-                        config['uploadId'] = uploadId;
-                        localStorage.setItem(progressKey, JSON.stringify(config));
-                        callback(null, uploadId)
+                        if(err) {
+                            callback(err);
+                        }else {
+                            config['uploadId'] = uploadId;
+                            localStorage.setItem(progressKey, JSON.stringify(config));
+                            callback(null, uploadId);
+                        }
                     });
                 }
             }],
@@ -531,14 +537,20 @@ function multipartUpload (params, cb) {
              * 并通知服务器,合并分块文件
              */
             upload: ['getUploadId', function(callback, result) {
-                var uploadId = result.getUploadId;
-                Ks3.config.currentUploadId = uploadId;
+                if(result.getUploadId) {
+                    var uploadId = result.getUploadId;
+                    Ks3.config.currentUploadId = uploadId;
 
-                config = JSON.parse(localStorage.getItem(progressKey));
-                var count = config['count'];
-                var index = config['index'];
-                var chunkSize = config['chunkSize'];
-                var currentRetries = config['retries'];
+                    config = JSON.parse(localStorage.getItem(progressKey));
+                    var count = config['count'];
+                    var index = config['index'];
+                    var chunkSize = config['chunkSize'];
+                    var currentRetries = config['retries'];
+
+                    up();
+                }else {
+                    callback({'msg':'no uploadId'});
+                }
 
                 // 在报错的时候重试
                 function retry(err) {
@@ -570,7 +582,11 @@ function multipartUpload (params, cb) {
                             try {
                                 Ks3.upload_part(params, function(err, partNumber, etag) {
                                     if (err) {
-                                        retry(err);
+                                        if(err.status == 413 || err.status == 415) {
+                                            callback(err);
+                                        }else {
+                                            retry(err);
+                                        }
                                     } else {
                                         if(!Ks3.config.stopFlag) {
                                             config['index'] = index;
@@ -603,7 +619,6 @@ function multipartUpload (params, cb) {
                     }
                 };
 
-                up();
             }]
         },
         function(err, results) {

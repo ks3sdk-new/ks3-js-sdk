@@ -807,7 +807,7 @@ Ks3.multitpart_upload_init = function(params, cb) {
                 var uploadId = Ks3.xmlToJson(xhr.responseXML)['InitiateMultipartUploadResult']['UploadId'];
                 cb(null, uploadId);
             }else if(xhr.status === 413 || xhr.status === 415) {
-                cb({"msg": Ks3.xmlToJson(xhr.responseXML)['errMsg']},null);
+                cb({"status":xhr.status, "msg": Ks3.xmlToJson(xhr.responseXML)['Error']['Message']},null);
             } else {
                 console.log('status: ' + xhr.status);
                 cb({"msg":"request failed"}, null);
@@ -865,7 +865,9 @@ Ks3.upload_part = function(params, cb){
             if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
                 var etag = xhr.getResponseHeader('Etag');
                 cb(null, partNumber,etag);
-            }else {
+            }else if(xhr.status === 413 || xhr.status === 415) {
+                cb({"status":xhr.status,"msg": Ks3.xmlToJson(xhr.responseXML)['Error']['Message']},null);
+            } else {
                 console.log('status: ' + xhr.status);
                 cb({"msg":"request failed"}, null);
             }
@@ -1046,4 +1048,21 @@ Ks3.upload_list_part = function(params,cb){
 String.prototype.endWith = function(str){
     var reg=new RegExp(str+"$");
     return reg.test(this);
+}
+
+
+Ks3.parseStringToXML = function(oString) {
+    if (document.implementation && document.implementation.createDocument) {
+        var xmlDoc = new DOMParser().parseFromString(oString, 'text/xml');
+    }
+    else if (window.ActiveXObject) {
+        var xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+        xmlDoc.loadXML(oString);
+    }
+    else
+    {
+        alert('浏览器不支持xml解析，请升级浏览器');
+        return null;
+    }
+    return xmlDoc;
 }
