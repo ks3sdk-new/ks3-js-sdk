@@ -171,9 +171,15 @@ uploader：返回一个 plupload 插件的 Uploader 对象。 欲查看更多关
 
 2. 查看bucket中的文件对象（List Object），并转换成json格式
 
-3. 上传图片增加水印（异步数据处理示例）
+3. 上传图片增加水印（异步数据处理示例，只限于杭州region）
 `注意`: 由于安全性考虑，由后台程序server.js计算signature，进行鉴权并请求ks3 API
 server.js为一个nodeJS web服务，启动后会监听本地的3000端口
+
+4. put上传文件
+
+5. 分块下载大文件（支持断点续传）
+
+6. 分块上传文件（支持断点续传）
 
 
 ### 许可协议 ###

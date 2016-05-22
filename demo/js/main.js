@@ -17,8 +17,8 @@
      * @type {HTMLElement}
      */
 
-    Ks3.config.AK = '';  //TODO： 请替换为您的AK
-    Ks3.config.SK = 'your secret key'; //注意：不安全，如果前端计算signature，请确保不会泄露SK
+    Ks3.config.AK = 'your access key';  //TODO： 请替换为您的AK
+    Ks3.config.SK = 'your secret key'; //TODO: 测试时请填写您的secret key  注意：前端计算signature不安全
 
     Ks3.config.region = 'BEIJING';  //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
     Ks3.config.bucket = 'gzz-beijing'; // TODO : 设置默认bucket name
@@ -299,36 +299,28 @@
     };
 
     /**
-     *  PUT Object 上传文件（不依赖与后端）
-     *  前端计算signature，put请求直接到ks3 API
-     *  注意：容易泄露SK, 建议只用于内部项目
+     *  PUT Object 上传文件
+     *  前端计算signature，put请求直传到ks3 API
+     *  注意：前端计算signature容易泄露SK, 只用于调试，生产环境需要从后端获取签名，作为第一个参数params的Signature属性传入sdk api函数
      *
      */
-
     document.getElementById('utp2').onclick = function() {
         var file = document.getElementById('imgFile2').files[0]; //获取文件对象
         var objKey = encodeURIComponent(file.name);
         var contentType = file.type;
 
-        var url = ks3UploadUrl + bucketName + '/' + objKey;
-        var kssHeaders = {
-            'Content-length': file.size
-        };
-        var signature = Ks3.generateToken(Ks3.config.SK, bucketName, objKey, 'PUT', contentType ,kssHeaders, '');
-        var xhr = new XMLHttpRequest();
-        xhr.overrideMimeType('text/xml');
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
-                    alert("put上传成功");
-                }else if(xhr.status === 413 || xhr.status === 415) {
-                    alert(Ks3.xmlToJson(xhr.responseXML)['Error']['Message']);
-                } else{
-                    alert('Request was unsuccessful: ' + xhr.status);
-
-                }
+        Ks3.putObject({
+            Key: objKey,
+            File: file,
+            ProgressListener: progressFunction,
+            Sinature: ''
+        },function(err) {
+            if(err) {
+                alert(JSON.stringify(err));
+            }else{
+                alert('put上传成功');
             }
-        };
+        });
 
         function progressFunction(e) {
             var progressBar = document.getElementById("progressBar2");
@@ -337,14 +329,7 @@
                 progressBar.value = e.loaded;
             }
         }
-        xhr.upload.addEventListener("progress", progressFunction, false);
-        xhr.open("put", url, true);
 
-        xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
-        //xhr.setRequestHeader('kss-async-process', kssHeaders['kss-async-process']);
-        //xhr.setRequestHeader('kss-notifyurl',kssHeaders['kss-notifyurl']); //替换成您接收异步处理任务完成通知的url地址
-        //xhr.setRequestHeader('x-kss-storage-class', 'STANDARD');
-        xhr.send(file);
     };
 
 

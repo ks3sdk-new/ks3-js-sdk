@@ -740,7 +740,52 @@ Ks3.getObject = function(params, cb) {
     xhr.send(null);
 }
 
-
+/**
+ * put object上传文件
+ * params {
+ *    Bucket: '' not required, bucket name
+ *    Key: ''    Required   object key
+ *    region : '' not required  bucket所在region
+ *    File: Object  required 上传的文件
+ *    ProgressListener: Function, not required   上传进度监听函数
+ *    Signature: ''  not required, 请求签名,从服务端获取
+ * }
+ */
+Ks3.putObject = function(params, cb) {
+    if (params.Key === null || params.Key === undefined) {
+        alert('require the Key');
+    }
+    var key = Ks3.encodeKey(params.Key);
+    var region = params.region || Ks3.config.region;
+    if (region ) {
+        Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
+    }
+    var bucketName = params.Bucket || Ks3.config.bucket || '';
+    if(!bucketName) {
+        alert('require the bucket name');
+    }
+    var url = Ks3.config.protocol + '://' + Ks3.config.baseUrl + '/' + bucketName + '/' + key;
+    var type = 'PUT';
+    var signature = params.Signature ||Ks3.generateToken(Ks3.config.SK, bucketName, key, type, params.File.type ,'', '');
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            if(xhr.status >= 200 && xhr.status < 300 || xhr.status == 304){
+                cb(null);
+            }else if(xhr.status === 413 || xhr.status === 415) {
+                var errMsg = Ks3.xmlToJson(xhr.responseXML)['Error']['Message'];
+                cb({"msg":errMsg});
+            }else {
+                console.log('status: ' + xhr.status);
+                cb({"msg":"request failed"});
+            }
+        }
+    };
+    xhr.upload.addEventListener("progress", params.ProgressListener, false);
+    xhr.open(type, url, true);
+    xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
+    xhr.send(params.File);
+}
 
 
 
