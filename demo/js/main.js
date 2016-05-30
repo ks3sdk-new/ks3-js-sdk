@@ -306,7 +306,7 @@
      */
     document.getElementById('utp2').onclick = function() {
         var file = document.getElementById('imgFile2').files[0]; //获取文件对象
-        var objKey = encodeURIComponent(file.name);
+        var objKey = Ks3.encodeKey(file.name);
         var contentType = file.type;
 
         Ks3.putObject({
