@@ -6,7 +6,7 @@
             signature: "", //根据Access Key Secret和policy计算的签名信息，KS3验证该签名信息从而验证该Post请求的合法性。
             bucket_name: "", //上传的空间名
             key: "", //被上传键值的名称。如果用户想要使用文件名作为键值，可以使用${filename} 变量。例如：如果用户想要上传文件local.jpg，需要指明specify /user/betty/${filename}，那么键值就会为/user/betty/local.jpg。
-            acl: "private", //上传文件访问权限,有效值: private | public-read | public-read-write | authenticated-read | bucket-owner-read | bucket-owner-full-control
+            acl: "private", //上传文件访问权限,有效值: private | public-read
             uploadDomain: "", //上传域名,http://destination-bucket.kss.ksyun.com 或者 http://kssws.ks-cdn.com/destination-bucket
             autoStart: false, //是否在文件添加完毕后自动上传
             onInitCallBack: function(){}, //上传初始化时调用的回调函数
