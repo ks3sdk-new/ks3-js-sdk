@@ -612,7 +612,7 @@ Ks3.listObject = function(params, cb) {
  */
 Ks3.delObject = function(params, cb) {
     var bucketName = params.Bucket || Ks3.config.bucket;
-    var key = encodeURIComponent(params.Key);
+    var key = Ks3.encodeKey(params.Key);
     var region = params.region || Ks3.config.region;
     if (region ) {
         Ks3.config.baseUrl =  Ks3.ENDPOINT[region];
