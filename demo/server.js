@@ -14,7 +14,7 @@ const util = require('ks3/lib/util');
 const ROOT = '/Users/web/ks3-js/sdk/demo';
 const hostname = '127.0.0.1';
 const port = 3000;
-const AK = 'YOB+XnjUoALcD0nFASOP'; //replace with your AK
+const AK = 'your Access Key'; //replace with your AK
 const SK = 'your secret key';  // your secret key (SK)
 
 var responseHeader = {
