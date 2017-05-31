@@ -44,7 +44,7 @@
                 "key": this.defaultKS3Options.key,
                 "acl": this.defaultKS3Options.acl,
                 "KSSAccessKeyId": this.defaultKS3Options.KSSAccessKeyId
-            }            
+            }
         }
 
         for(var prop in this.defaultKS3Options) {
@@ -326,7 +326,7 @@ Ks3.b64pad  = "="; /* base-64 pad character. "=" for strict RFC compliance   */
 Ks3.core_hmac_sha1 = function(key, data)
 {
     var bkey = Ks3.str2binb(key);
-    if(bkey.length > 16) bkey = core_sha1(bkey, key.length * Ks3.chrsz);
+    if(bkey.length > 16) bkey = Ks3.core_sha1(bkey, key.length * Ks3.chrsz);
 
     var ipad = Array(16), opad = Array(16);
     for(var i = 0; i < 16; i++)
