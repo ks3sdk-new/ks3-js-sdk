@@ -959,6 +959,8 @@ Ks3.upload_complete = function(params,cb){
     var bucketName = params.Bucket || Ks3.config.bucket || '';
     var key = Ks3.encodeKey(params.Key) || null;
     var uploadId = params.UploadId || '';
+	var callbackurl = params.callbackurl || '';
+	var callbackbody = params.callbackbody || '';
 
     if (!bucketName || !key) {
         throw new Error('require the bucketName and object key');
@@ -973,9 +975,22 @@ Ks3.upload_complete = function(params,cb){
     resource = resource.replace(/\/\//g, "/%2F");
     var contentType = 'text/plain;charset=UTF-8';
 
+	var headers = {};
+	if(callbackurl) {
+		var attr_url = 'x-' + Ks3.config.prefix + '-callbackurl';
+		headers[attr_url] = callbackurl;
+	};
+	if(callbackbody) {
+		var attr_body = 'x-' + Ks3.config.prefix + '-callbackbody';
+		headers[attr_body] = callbackbody;
+	};
+
     var url = Ks3.config.protocol + '://'  + Ks3.config.baseUrl + '/' + bucketName + '/' + resource;
     var type = 'POST';
-    var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType,'', '');
+	var signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType,'', '');
+	if(headers) {
+		signature =  params.Signature || Ks3.generateToken(Ks3.config.SK, bucketName, resource, type, contentType ,headers, '');
+	};
 
     var xhr = new XMLHttpRequest();
     xhr.overrideMimeType('text/xml'); //兼容火狐
@@ -993,6 +1008,12 @@ Ks3.upload_complete = function(params,cb){
 
     xhr.open(type, url, true);
     xhr.setRequestHeader('Authorization','KSS ' + Ks3.config.AK + ':' + signature );
+	if(callbackurl) {
+		xhr.setRequestHeader('x-kss-callbackurl',callbackurl );
+	}
+	if(callbackbody) {
+		xhr.setRequestHeader('x-kss-callbackbody',callbackbody );
+	}
     if(body) {
         xhr.send(body);
     }
