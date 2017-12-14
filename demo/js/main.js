@@ -17,11 +17,11 @@
      * @type {HTMLElement}
      */
 
-    Ks3.config.AK = 'your access key';  //TODO： 请替换为您的AK
-    Ks3.config.SK = 'your secret key'; //TODO: 测试时请填写您的secret key  注意：前端计算signature不安全
+    Ks3.config.AK = '';  //TODO： 请替换为您的AK
+    Ks3.config.SK = ''; //TODO: 测试时请填写您的secret key  注意：前端计算signature不安全
 
-    Ks3.config.region = 'BEIJING';  //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
-    Ks3.config.bucket = 'your bucket name'; // TODO : 设置默认bucket name
+    Ks3.config.region = 'HANGZHOU';  //TODO: 需要设置bucket所在region， 如杭州region： HANGZHOU,北京region：BEIJING，香港region：HONGKONG，上海region: SHANGHAI ，美国region:AMERICA ；如果region设置和实际不符，则会返回301状态码； region的endpoint参见：http://ks3.ksyun.com/doc/api/index.html
+    Ks3.config.bucket = ''; // TODO : 设置默认bucket name
     var bucketName = Ks3.config.bucket;     //TODO: 请替换为您需要上传文件的bucket名称
 
 
@@ -39,12 +39,13 @@
             ["starts-with", "$key", ""],
             ["starts-with","$acl", "public-read"],
             ["starts-with", "$name", ""],   //表单中传了name字段，也需要加到policy中
-            ["starts-with", "$x-kss-meta-custom-param1",""]  //必须只包含小写字符
-            ,["starts-with", "$Cache-Control",""]
-            ,["starts-with", "$Expires", ""]
-            ,["starts-with", "$Content-Disposition", ""]
-            ,["starts-with", "$Content-Type",""]
-            ,["starts-with", "$Content-Encoding",""]
+            ["starts-with", "$x-kss-meta-custom-param1",""],
+            ["starts-with", "$x-kss-newfilename-in-body",""],//必须只包含小写字符
+            ["starts-with", "$Cache-Control",""],
+            ["starts-with", "$Expires", ""],
+            ["starts-with", "$Content-Disposition", ""],
+            ["starts-with", "$Content-Type",""],
+            ["starts-with", "$Content-Encoding",""]
         ]
     };
     //policy stringify再经过BASE64加密后的字符串（utf8编码格式）
@@ -74,6 +75,7 @@
         uploadDomain: ks3UploadUrl  + bucketName,
         autoStart: false,
         'x-kss-meta-custom-param1': 'Hello',
+        'x-kss-newfilename-in-body': true,
         'Cache-Control': 'max-age=600',                //设置缓存多少秒后过期
         'Expires': new Date(getExpires(600) * 1000),   //设置缓存过期时间
         'Content-Disposition' :'attachment;filename=', // 触发浏览器下载文件

@@ -48,7 +48,7 @@
         }
 
         for(var prop in this.defaultKS3Options) {
-            if(typeof this.defaultKS3Options[prop] == 'string' && prop.indexOf('x-kss-meta-') !== -1) {
+            if(typeof this.defaultKS3Options[prop] == 'string' && prop.indexOf('x-kss-meta-') !== -1 || prop == "x-kss-newfilename-in-body") {
                 multipartParams[prop] = this.defaultKS3Options[prop];
             }
         }

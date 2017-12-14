@@ -1,6 +1,6 @@
 {
   "name": "ks3-js-sdk",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "ks3 sdk javascript version",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
